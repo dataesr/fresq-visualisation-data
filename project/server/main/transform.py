@@ -5,15 +5,15 @@ import requests
 from retry import retry
 import pandas as pd
 import datetime
-from utils import get_raw_data_filename, get_transformed_data_filename
-from paysage import enrich_with_paysage
+from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename
+from project.server.main.paysage import enrich_with_paysage
 
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object, download_object
 
 logger = get_logger(__name__)
 
-def transform(raw_data_suffix):
+def transform_raw_data(raw_data_suffix):
     raw_data_filename = get_raw_data_filename(raw_data_suffix)
     download_object('fresq', raw_data_filename, raw_data_filename)
     with open(fresq_file, 'r') as file:

@@ -75,7 +75,7 @@ def save_data(data):
     os.system(f'rm -rf {current_file}.gz')
     return f'{current_file}.gz'
 
-def extract():
+def extract_from_fresq():
     full_data = get_full_data()
     filename = save_data(data)
     return filename
