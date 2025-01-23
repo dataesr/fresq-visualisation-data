@@ -29,22 +29,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.8 get-pip.py
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
 # Install last version of NodeJS
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
 RUN apt-get install -y nodejs
 
 WORKDIR /src
 
-# install dependencies
-RUN pip install --upgrade pip
-COPY ./requirements.txt .
-RUN pip install -r requirements.txt
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
 
+COPY requirements.txt /src/requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install -r requirements.txt --proxy=${HTTP_PROXY}
 RUN npm install elasticdump -g
 
-# copy project
 COPY . /src
