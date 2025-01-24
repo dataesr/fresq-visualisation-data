@@ -18,6 +18,11 @@ from project.server.main.logger import get_logger
 
 logger = get_logger(__name__)
 
+import datetime
+
+def get_today():
+    return datetime.datetime.today().strftime('%Y%m%d')
+
 def get_raw_data_filename(suffix):
     return f'fresq_raw_{suffix}.json.gz'
 
