@@ -22,7 +22,7 @@ def get_raw_data_filename(suffix):
     return f'fresq_raw_{suffix}.json.gz'
 
 def get_transformed_data_filename(suffix):
-    return f'fresq_transformed_{suffix}.json'
+    return f'fresq_transformed_{suffix}.jsonl'
 
 def validate_json_schema(data: list, _schema: dict) -> bool:
     is_valid = True
