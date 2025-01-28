@@ -68,6 +68,7 @@ def get_data(code_diplome):
         data += r['content']
         time.sleep(1)
     logger.debug(f'{len(data)} elements retrieved for code {code_diplome}')
+    assert(len(data) < 9999)
     return data
 
 def get_full_data():
