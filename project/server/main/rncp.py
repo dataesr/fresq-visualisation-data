@@ -1,7 +1,18 @@
+import requests
+
 from project.server.main.logger import get_logger
+from project.server.main.utils import download_file
 logger = get_logger(__name__)
 
 def get_rncp():
+    URL_RNCP_DATA_GOUV = 'https://www.data.gouv.fr/api/2/datasets/5eebbc067a14b6fecc9c9976/resources/?page=1&type=update&page_size=6&q'
+    r = requests.get(URL_RNCP_DATA_GOUV).json()['data']
+    for dataset in r:
+        if 'export-fiches-rncp-v4-1' in dataset['title'] and 'csv' not in dataset['title']:
+            break
+    dataset_url = dataset['url']
+    # dowload and upload to OVH
+    download_file(dataset_url, True)
     return {}
 
 def get_rncp_elt(num_rncp):
