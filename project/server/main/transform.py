@@ -101,7 +101,11 @@ def enrich_fresq_elt(elt):
     code_sise_fresq = None
     if isinstance(elt.get('code_sise'), str):
         code_sise_fresq = str(elt['code_sise'])
+    elif isinstance(elt.get('code_sise'), list):
+        logger.debug(f'multiple SISE - what should we do?')
+        logger.debug(f"data_issue;multiple_codeSISE;{fresq_id};{uai_fresq}")
     else:
+        assert(elt.get('code_sise') is None)
         logger.debug(f"data_issue;no_codeSISE;{fresq_id};{uai_fresq}")
     sise_infos = {}
     nb_has_sise_infos = 0
@@ -128,6 +132,7 @@ def enrich_fresq_elt(elt):
     if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:
         num_rncp = elt['num_rncp']
     else:
+        assert(elt.get('num_rncp') is None)
         logger.debug(f"data_issue;no_RNCP;{fresq_id};{uai_fresq}")
 
     # rncp

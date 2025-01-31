@@ -14,9 +14,14 @@ def get_console_handler() -> logging.StreamHandler:
     console_handler.setFormatter(get_formatter())
     return console_handler
 
+def get_file_handler():
+    file_handler = logging.FileHandler('logs.log')
+    file_handler.setFormatter(get_formatter())
+    return file_handler
 
 def get_logger(name: str = __name__, level: int = logging.DEBUG) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.addHandler(get_console_handler())
+    logger.addHandler(get_file_handler())
     return logger
