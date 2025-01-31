@@ -1,35 +1,59 @@
 import requests
-
+from bs4 import BeautifulSoup
+import pandas as pd
+import os
+import json
 from project.server.main.logger import get_logger
 from project.server.main.utils import download_file
 logger = get_logger(__name__)
 
+URL_RNCP_DATA_GOUV = 'https://www.data.gouv.fr/api/2/datasets/5eebbc067a14b6fecc9c9976/resources/?page=1&type=update&page_size=6&q'
+df_rncp = None
+
 def get_rncp():
-    URL_RNCP_DATA_GOUV = 'https://www.data.gouv.fr/api/2/datasets/5eebbc067a14b6fecc9c9976/resources/?page=1&type=update&page_size=6&q'
+    logger.debug('>>>>> get RNCP >>>>>')
     r = requests.get(URL_RNCP_DATA_GOUV).json()['data']
     for dataset in r:
         if 'export-fiches-rncp-v4-1' in dataset['title'] and 'csv' not in dataset['title']:
             break
     dataset_url = dataset['url']
     # dowload and upload to OVH
-    download_file(dataset_url, True)
-    return {}
+    rncp_zip_file = download_file(dataset_url, True)
+    rncp_suffix = rncp_zip_file.replace('export-fiches-rncp-v4-1-', '').replace('.zip', '')
+    os.system(f'unzip {rncp_zip_file}')
+    rncp_filename = None
+    for f in os.listdir():
+        if ('RNCP' in f) and (rncp_suffix in f) and ('xml' in f):
+            rncp_filename = f
+    logger.debug(f'starting to parse {rncp_filename} ...')
+    xml = open(rncp_filename, 'r').read()
+    soup = BeautifulSoup(xml, 'xml')
+    x = soup.find_all('FICHE')
+    parsed = []
+    for ix, fiche in enumerate(x):
+        if ix%5000==0:
+            logger.debug(f'parsing RNCP {ix}/{len(x)}')
+        parsed.append(parse_fiche_rncp(fiche))
+    rncp_parsed_filename = 'rncp_parsed_latest.json'
+    json.dump(parsed, open(rncp_parsed_filename, 'w'))
+    df_rncp = pd.DataFrame(pd.read_json(rncp_parsed_filename)).set_index('numero_fiche')
+    logger.debug(f'rncp object created with {len(df_rncp)} elements')
+    return df_rncp
 
 def get_rncp_elt(num_rncp):
-    df_tmp = df_rncp[df_rncp.index==num_rncp]#['type_emploi_accessibles']
     ans = {'has_rncp_infos': False, 'rncp_infos': {}}
+    if num_rncp is None:
+        return ans
+    global df_rncp
+    if df_rncp is None:
+        df_rncp = get_rncp()
+    df_tmp = df_rncp[df_rncp.index==num_rncp]#['type_emploi_accessibles']
     rncp_infos = {}
     if len(df_tmp)>0:
         elt = df_tmp.to_dict(orient='records')[0]
         for f in ['type_emploi_accessibles']:
             rncp_infos[f] = elt[f]
         return {'has_rncp_infos': True, 'rncp_infos': rncp_infos}
-    return ans
-
-def get_rome_elt(num_rncp):
-    ans = {'has_rome_infos': False, 'rome_infos': {}}
-    if num_rncp in rncp2rome:
-        return {'has_rome_infos': True, 'rome_infos': rncp2rome[num_rncp]}
     return ans
 
 def parse_fiche_rncp(e):
@@ -104,6 +128,3 @@ def get_value(x, l):
     if n:
         return n.get_text()
     return None
-
-def get_rncp2rome():
-    return {}

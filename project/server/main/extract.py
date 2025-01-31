@@ -93,6 +93,7 @@ def save_data(data):
     return current_date
 
 def extract_from_fresq():
+    logger.debug('>>>>>>>>>> EXTRACT >>>>>>>>>>')
     full_data = get_full_data()
     suffix = save_data(full_data)
     return suffix

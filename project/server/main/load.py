@@ -17,11 +17,12 @@ ES_LOGIN_FRESQ_BACK = os.getenv('ES_LOGIN_FRESQ_BACK')
 ES_PASSWORD_FRESQ_BACK = os.getenv('ES_PASSWORD_FRESQ_BACK')
 
 def load(raw_data_suffix, index_name):
+    logger.debug('>>>>>>>>>> LOAD >>>>>>>>>>')
     transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
     download_object('fresq', transformed_data_filename, transformed_data_filename)
     es_url_without_http = ES_URL.replace('https://','').replace('http://','')
     es_host = f'https://{ES_LOGIN_FRESQ_BACK}:{parse.quote(ES_PASSWORD_FRESQ_BACK)}@{es_url_without_http}'
     reset_index_fresq(index=index_name)
     elasticimport = f"elasticdump --input={transformed_data_filename} --output={es_host}{index_name} --type=data --limit 1000 --noRefresh " + "--transform='doc._source=Object.assign({},doc)'"
-    #os.system(elasticimport)
+    os.system(elasticimport)
     refresh_index(index_name)

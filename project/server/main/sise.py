@@ -7,6 +7,7 @@ URL_SISE = 'https://data.enseignementsup-recherche.gouv.fr/api/explore/v2.1/cata
 df_sise_dict, years_in_sise = None, []
 
 def get_sise():
+    logger.debug('>>>>> get SISE >>>>>')
     try:
         df_sise = pd.read_csv('sise_latest.csv.gz', sep=';')
         logger.debug(f'reading {len(df_sise)} SISE data from local file')
@@ -30,21 +31,25 @@ def get_years_in_sise():
     return years_in_sise
 
 
-def get_sise_elt(uai_fresq, sise_fresq, annee):
+def get_sise_elt(uai_fresq, sise_fresq, annee, fresq_id):
+    
+    empty_ans = {'sise_matching': 'no_match', 'sise_infos': [],
+                         'has_sise_infos': False, 'code_sise_found': None}
+    
+    if sise_fresq is None:
+        empty_ans['sise_matching'] = 'no_code_SISE'
+        return empty_ans
 
     global df_sise_dict, years_in_sise
     if df_sise_dict is None:
         df_sise_dict, years_in_sise = get_sise()
     df_sise_annee = df_sise_dict[annee]
 
-    empty_ans = {'sise_matching': 'no_match', 'sise_infos': [],
-                         'has_sise_infos': False, 'code_sise_found': None}
-
-
     method = 'code_sise_fresq'
     df_sise_filtered = df_sise_annee[df_sise_annee.DIPLOM==sise_fresq]
     if len(df_sise_filtered) == 0:
         logger.debug(f'code SISE {sise_fresq} absent from SISE data in {annee}')
+        logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{uai_fresq};{sise_fresq};{annee}")
         return empty_ans
         #method = 'libelle1_uai'
         #df_sise_filtered = df_sise_annee[df_sise_annee.index==mention_fresq]

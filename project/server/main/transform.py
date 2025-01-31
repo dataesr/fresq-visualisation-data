@@ -18,11 +18,27 @@ logger = get_logger(__name__)
 
 raw_data_suffix = '20250124'
 
-def transform_raw_data(raw_data_suffix):
+df_fresq_raw = None
+
+def get_df_fresq_raw(raw_data_suffix):
     raw_data_filename = get_raw_data_filename(raw_data_suffix)
     download_object('fresq', raw_data_filename, raw_data_filename)
-    fresq_data = [e['data'] for e in pd.read_json(raw_data_filename).to_dict(orient='records')]
-    fresq_enriched = enrich_with_paysage(fresq_data)
+    return pd.read_json(raw_data_filename)
+
+def transform_raw_data(raw_data_suffix):
+    logger.debug('>>>>>>>>>> TRANSFORM >>>>>>>>>>')
+    logger.debug(f'start fresq data from {raw_data_suffix} enrichment')
+    global df_fresq_raw
+    if df_fresq_raw is None:
+        df_fresq_raw = get_df_fresq_raw(raw_data_suffix)
+    fresq_data = [e['data'] for e in df_fresq_raw.to_dict(orient='records')]
+    fresq_data_with_paysage = enrich_with_paysage(fresq_data)
+    fresq_enriched = []
+    for ix, e in enumerate(fresq_data_with_paysage):
+        elt = enrich_fresq_elt(e)
+        fresq_enriched.append(elt)
+        if len(fresq_enriched) % 2000 == 0:
+            logger.debug(f'{len(fresq_enriched)} / {len(fresq_data_with_paysage)}')
     transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
     os.system(f'rm -rf {transformed_data_filename}')
     to_jsonl(fresq_enriched, transformed_data_filename)
@@ -46,8 +62,11 @@ def get_cycle(cat, lib):
 def enrich_fresq_elt(elt):
     fresq_id = elt['inf']
     assert(isinstance(fresq_id, str))
-    assert(len(fresq_id)>5)
-    uai_fresq = elt['uai_etablissement']
+    if(len(fresq_id)<5):
+        logger.debug(f"data_issue;bad INF?;{fresq_id};")
+    uai_fresq = elt.get('uai_etablissement', '')
+    if len(uai_fresq)<5:
+        logger.debug(f"data_issue;bad UAI;{fresq_id};{uai_fresq}")
     # real PID is inf x UAI
     fresq_etab_id = f'{fresq_id}_{uai_fresq}'
     elt['fresq_etab_id'] = fresq_etab_id
@@ -59,29 +78,38 @@ def enrich_fresq_elt(elt):
         geolocalisations = elt['geolocalisations']
         if len(geolocalisations) > 1:
             logger.debug(f'multiple geoloc for {fresq_id}')
+            logger.debug(f"data_issue;multiple_geoloc;{fresq_id};{uai_fresq}")
     for geolocalisation in geolocalisations:
         if geolocalisation.get('site_uai') and geolocalisation.get('site_uai') != uai_fresq:
+            site_uai = geolocalisation.get('site_uai')
             logger.debug(f"multiples UAI for inf {fresq_id} with uai_etablissement={uai_fresq} and in geoloc site_uai={geolocalisation.get('site_uai')}")
+            logger.debug(f"data_issue;multipleUAI_in_geoloc;{fresq_id};{uai_fresq}_{site_uai}")
         if isinstance(geolocalisation, dict) and geolocalisation.get('site_geolocalisation', {}).get('coordinates'):
             geoloc_s = geolocalisation['site_geolocalisation']['coordinates'].replace('"', '').split(',')
-            if '[' in geoloc_s[0] and ']' in geoloc_s[1]:
+            if (len(geoloc_s) == 2) and ('[' in geoloc_s[0]) and (']' in geoloc_s[1]):
                 longitude = float(geoloc_s[0].replace('[', ''))
                 latitude = float(geoloc_s[1].replace(']', ''))
                 geoloc = f"{elt['nom_etablissement']}###{latitude}###{longitude}"
                 elt['geoloc'] = geoloc
+            else:
+                logger.debug(f"data_issue;geoloc_ill_formed;{fresq_id};{uai_fresq};{geoloc_s}")
     #monmaster
     monmaster_infos = get_monmaster_elt(fresq_id, uai_fresq)
     elt.update(monmaster_infos)
 
     #sise
-    code_sise_fresq = str(elt['code_sise'])
+    code_sise_fresq = None
+    if isinstance(elt.get('code_sise'), str):
+        code_sise_fresq = str(elt['code_sise'])
+    else:
+        logger.debug(f"data_issue;no_codeSISE;{fresq_id};{uai_fresq}")
     sise_infos = {}
     nb_has_sise_infos = 0
     elt['has_sise_infos_years'] = []
     annees = get_years_in_sise()
     for annee in annees:
         uai_to_use = uai_fresq # TODO better with previous UAIs
-        sise_infos[annee] = get_sise_elt(uai_to_use, code_sise_fresq, annee)
+        sise_infos[annee] = get_sise_elt(uai_to_use, code_sise_fresq, annee, fresq_id)
         if sise_infos[annee].get('has_sise_infos'):
             nb_has_sise_infos += 1
             elt['has_sise_infos_years'].append(annee)
@@ -96,12 +124,18 @@ def enrich_fresq_elt(elt):
         elt['nb_has_sise_infos'] = nb_has_sise_infos
     elt['sise_infos'] = sise_infos
 
+    num_rncp = None
+    if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:
+        num_rncp = elt['num_rncp']
+    else:
+        logger.debug(f"data_issue;no_RNCP;{fresq_id};{uai_fresq}")
+
     # rncp
-    rncp_infos = get_rncp_elt(elt['num_rncp'])
+    rncp_infos = get_rncp_elt(num_rncp)
     elt.update(rncp_infos)
 
     # rome
-    rome_infos = get_rome_elt(elt['num_rncp'])
+    rome_infos = get_rome_elt(num_rncp)
     elt.update(rome_infos)
     
     return elt

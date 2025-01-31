@@ -7,6 +7,7 @@ import re
 import json
 import string
 import unicodedata
+import requests
 
 from tokenizers import normalizers
 from tokenizers.normalizers import BertNormalizer, Sequence, Strip
@@ -30,6 +31,14 @@ def get_filename_from_cd(cd: str):
         return None
     return fname[0]
 
+def get_filename(url):
+    with requests.get(url, stream=True, verify=False) as r:
+        r.raise_for_status()
+        try:
+            local_filename = get_filename_from_cd(r.headers.get('content-disposition')).replace('"', '')
+        except:
+            local_filename = url.split('/')[-1]
+    return local_filename
 
 def download_file(url: str, upload_to_object_storage: bool = True, destination: str = None) -> str:
     start = datetime.datetime.now()

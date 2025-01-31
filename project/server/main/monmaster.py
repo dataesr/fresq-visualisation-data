@@ -10,6 +10,7 @@ logger = get_logger(__name__)
 df_monmaster = None
 
 def get_monmaster():
+    logger.debug('>>>>> get MON MASTER >>>>>')
     headers = {'Accept': 'application/json'}
     params = {'size': '10000'}
     MONMASTER_URL = os.getenv('MONMASTER_URL')
@@ -44,7 +45,8 @@ def get_monmaster_elt(inf, uai):
     ans = {}
     monmaster_elts = df_monmaster[(df_monmaster.index==inf) & (df_monmaster.uai==uai)].to_dict(orient='records')
     if(len(monmaster_elts)>1):
-        print(f'{inf} {uai} apparait {len(monmaster_elts)} fois dans les données monmaster')
+        logger.debug(f'{inf} {uai} apparait {len(monmaster_elts)} fois dans les données monmaster')
+        logger.debug(f"data_issue;multiple_monmaster_elts;{inf};{uai}")
     if len(monmaster_elts) >= 1:
         # tous ces champs ont disparus
         for f in ['courses', 'keyWords', 'listSpecialityCourse' ]:

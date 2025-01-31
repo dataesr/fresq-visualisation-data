@@ -29,7 +29,7 @@ def create_task_fresq(arg):
     assert(isinstance(raw_data_suffix, str))
 
     if transform:
-        transformed_data_filename = transform_raw_data(raw_data_suffix)
+        transform_raw_data(raw_data_suffix)
 
     if load:
         load(raw_data_suffix, index_name)
