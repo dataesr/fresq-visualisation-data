@@ -18,6 +18,7 @@ def get_sise():
     df_sise['DIPLOM'] = df_sise['DIPLOM'].apply(lambda x:str(x)).replace('.0', '')
     annees = df_sise['Année universitaire'].unique().tolist()
     annees.sort()
+    years_in_sise = annees
     df_sise_dict = {}
     for a in annees:
         df_sise_dict[a] = df_sise[df_sise['Année universitaire']==a]
@@ -47,9 +48,9 @@ def get_sise_elt(uai_fresq, sise_fresq, annee, fresq_id):
 
     method = 'code_sise_fresq'
     df_sise_filtered = df_sise_annee[df_sise_annee.DIPLOM==sise_fresq]
-    if len(df_sise_filtered) == 0:
-        logger.debug(f'code SISE {sise_fresq} absent from SISE data in {annee}')
-        logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{uai_fresq};{sise_fresq};{annee}")
+    #if len(df_sise_filtered) == 0:
+    #    logger.debug(f'code SISE {sise_fresq} absent from SISE data in {annee}')
+    #    logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{uai_fresq};{sise_fresq};{annee}")
         return empty_ans
         #method = 'libelle1_uai'
         #df_sise_filtered = df_sise_annee[df_sise_annee.index==mention_fresq]

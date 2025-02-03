@@ -127,6 +127,9 @@ def enrich_fresq_elt(elt):
             elt['has_sise_infos_last'] = sise_infos[annee]['has_sise_infos']
         elt['nb_has_sise_infos'] = nb_has_sise_infos
     elt['sise_infos'] = sise_infos
+    if elt['nb_has_sise_infos'] == 0:
+        logger.debug(f'code SISE {code_sise_fresq} absent from SISE data')
+        logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{uai_fresq};{code_sise_fresq}")
 
     num_rncp = None
     if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:
