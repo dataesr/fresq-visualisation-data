@@ -105,10 +105,11 @@ def reset_index_fresq(index: str) -> None:
               'rncp_infos.type_emploi_accessibles',
               'rome_infos.level_1', 'rome_infos.level_2', 'rome_infos.level_3', 'rome_infos.label', 
               'sise_secteur_disciplinaire', 'sise_discipline', 'sise_grande_discipline',
-              'entityfishing_infos.entities.domains',
-              'monmaster_infos.listSpecialityCourse', 'monmaster_infos.keyWords',
-             'monmaster_infos.courses.expectedSkills', 'monmaster_infos.courses.keyWords', 
-              'monmaster_infos.courses.criteres']:
+              # 'entityfishing_infos.entities.domains',
+              # 'monmaster_infos.listSpecialityCourse', 'monmaster_infos.keyWords',
+             # 'monmaster_infos.courses.expectedSkills', 'monmaster_infos.courses.keyWords', 
+             # 'monmaster_infos.courses.criteres'
+             ]:
         mappings['properties'][f] = {
                 'type': 'text',
                 'analyzer': 'heavy',

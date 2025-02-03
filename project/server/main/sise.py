@@ -48,7 +48,7 @@ def get_sise_elt(uai_fresq, sise_fresq, annee, fresq_id):
 
     method = 'code_sise_fresq'
     df_sise_filtered = df_sise_annee[df_sise_annee.DIPLOM==sise_fresq]
-    #if len(df_sise_filtered) == 0:
+    if len(df_sise_filtered) == 0:
     #    logger.debug(f'code SISE {sise_fresq} absent from SISE data in {annee}')
     #    logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{uai_fresq};{sise_fresq};{annee}")
         return empty_ans
@@ -93,7 +93,8 @@ def get_sise_elt(uai_fresq, sise_fresq, annee, fresq_id):
         'degre_etudes',
         'diplome', 'niveau_dans_le_diplome',
         'libelle_formation_2',
-        'implantation_code_commune', 'commune_unite_inscription',
+        'implantation_code_commune', 
+        'commune_unite_inscription',
         'selection_disciplinaire', 'grande_discipline_code', 'grande_discipline',
        'discipline_code', 'discipline', 'secteur_disciplinaire_code',
        'secteur_disciplinaire',

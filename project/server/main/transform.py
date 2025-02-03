@@ -126,8 +126,20 @@ def enrich_fresq_elt(elt):
                     elt[f] = sise_infos[annee][f]
             elt['has_sise_infos_last'] = sise_infos[annee]['has_sise_infos']
         elt['nb_has_sise_infos'] = nb_has_sise_infos
+        # simplify data - remove some fields
+        for k in sise_infos[annee]['sise_infos']:
+            for f in ['grande_discipline_code', 'grande_discipline', 
+                  'secteur_disciplinaire_code', 'secteur_disciplinaire',
+                 'discipline_code', 'discipline', 'annee_universitaire']:
+                if k.get(f):
+                    del k[f]
+            if k.get('implantation_code_commune'):
+                k['implantation_code_commune'] = str(k['implantation_code_commune'])
+        for f in ['sise_discipline', 'sise_grande_discipline', 'sise_secteur_disciplinaire']:
+            if sise_infos[annee].get(f):
+                del sise_infos[annee][f]
     elt['sise_infos'] = sise_infos
-    if elt['nb_has_sise_infos'] == 0:
+    if code_sise_fresq and (elt['nb_has_sise_infos'] == 0):
         logger.debug(f'code SISE {code_sise_fresq} absent from SISE data')
         logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{uai_fresq};{code_sise_fresq}")
 
