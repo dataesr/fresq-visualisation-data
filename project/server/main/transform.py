@@ -5,7 +5,7 @@ import requests
 from retry import retry
 import pandas as pd
 import datetime
-from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename, to_jsonl
+from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename, to_jsonl, normalize
 from project.server.main.paysage import enrich_with_paysage
 from project.server.main.monmaster import get_monmaster_elt
 from project.server.main.sise import get_years_in_sise, get_sise_elt
@@ -13,6 +13,7 @@ from project.server.main.rncp import get_rncp_elt
 from project.server.main.rome import get_rome_elt
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object, download_object
+from project.server.main.ef import get_entityfishing 
 
 logger = get_logger(__name__)
 
@@ -70,6 +71,11 @@ def enrich_fresq_elt(elt):
     # real PID is inf x UAI
     fresq_etab_id = f'{fresq_id}_{uai_fresq}'
     elt['fresq_etab_id'] = fresq_etab_id
+    # mention
+    mention_fresq = normalize(elt.get('intitule_officiel'), remove_space=False)
+    mention_fresq = mention_fresq.replace('2nd degre', '2e degre')
+    #mention_fresq = mention_fresq.replace('pratiques et ingenierie de la formation pif', 'pratiques et ingenierie de la formation')
+    elt['mention_normalized'] = mention_fresq.title()
     # cycle
     elt['cycle'] = get_cycle(elt['categorie_type_diplome'], elt['libelle_type_diplome'])
     # geoloc infos
@@ -96,6 +102,10 @@ def enrich_fresq_elt(elt):
     #monmaster
     monmaster_infos = get_monmaster_elt(fresq_id, uai_fresq)
     elt.update(monmaster_infos)
+    
+    #entity fishing
+    ef_infos = get_entityfishing()
+    elt.update(ef_infos)
 
     #sise
     code_sise_fresq = None
