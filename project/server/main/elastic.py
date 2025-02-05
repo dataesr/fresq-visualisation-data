@@ -5,10 +5,16 @@ import os
 
 client = None
 from elasticsearch import Elasticsearch, helpers
+from urllib import parse
 
 ES_URL = os.getenv('ES_URL')
 ES_LOGIN_FRESQ_BACK = os.getenv('ES_LOGIN_FRESQ_BACK')
 ES_PASSWORD_FRESQ_BACK = os.getenv('ES_PASSWORD_FRESQ_BACK')
+
+def get_es_host():
+    es_url_without_http = ES_URL.replace('https://','').replace('http://','')
+    es_host = f'https://{ES_LOGIN_FRESQ_BACK}:{parse.quote(ES_PASSWORD_FRESQ_BACK)}@{es_url_without_http}'
+    return es_host
 
 def get_client():
     global client
@@ -73,18 +79,7 @@ def get_analyzers() -> dict:
         }
     }
 
-def reset_index_fresq(index: str) -> None:
-    es = get_client()
-    delete_index(index)
-
-    settings = {
-        'analysis': {
-            'filter': get_filters(),
-            'analyzer': get_analyzers()
-        },
-        'max_ngram_diff': 10
-    }
-   
+def get_mappings_fresq():
     mappings = { 'properties': {} }
 
     mappings['properties']['autocompleted'] = {
@@ -93,9 +88,6 @@ def reset_index_fresq(index: str) -> None:
                 'type': 'text',
                 'analyzer': 'autocomplete'
             }
-
-
-
     for f in ['mots_cles', 'specialites', 'domaines', 
               'domaine_rattachement_1_cti', 'domaine_rattachement_2_cti', 'domaine_rattachement_autre_cti',
               'specialite_sante', 'specialites_cti', 'nom_specialite_but',
@@ -134,8 +126,99 @@ def reset_index_fresq(index: str) -> None:
                 'type': 'text',
                 'analyzer': 'light',
             }
+    return mappings
+ 
 
-        
+def get_mappings_metiers():
+    mappings = { 'properties': {} }
+
+    mappings['properties']['autocompleted'] = {
+                'type': 'text',
+                'analyzer': 'autocomplete'
+            }
+
+    for f in ['label', 'level_1', 'level_2', 'metiers.label']:
+        mappings['properties'][f] = {
+                'type': 'text',
+                'analyzer': 'heavy',
+                'fields': {
+                    'keyword': {
+                        'type':  'keyword'
+                    }
+                }
+            }
+    return mappings
+
+
+def get_mappings_mentions():
+    mappings = { 'properties': {} }
+
+    mappings['properties']['autocompleted'] = {
+                'type': 'text',
+                'analyzer': 'autocomplete'
+            }
+
+    for f in ['mots_cles', 'specialites', 'domaines', 
+              'domaine_rattachement_1_cti', 'domaine_rattachement_2_cti', 'domaine_rattachement_autre_cti',
+              'intitule_officiel', 
+              'libelle_formation_2', 'mention_normalized', 
+              'formations.nom_etablissement',
+              'rncp_infos.type_emploi_accessibles',
+              'rome_infos.level_1', 'rome_infos.level_2', 'rome_infos.label', 
+              'sise_secteur_disciplinaire', 'sise_discipline', 'sise_grande_discipline',
+          #    'entityfishing_infos.entities.domains',
+          #    'monmaster_infos.listSpecialityCourse', 'monmaster_infos.keyWords',
+          #   'monmaster_infos.courses.expectedSkills', 'monmaster_infos.courses.keyWords', 
+          #   'monmaster_infos.courses.criteres'
+          ]:
+        mappings['properties'][f] = {
+                'type': 'text',
+                'analyzer': 'heavy',
+                'fields': {
+                    'keyword': {
+                        'type':  'keyword'
+                    }
+                }
+            }
+    return mappings
+
+def get_mappings_etab():
+    mappings = { 'properties': {} }
+
+    mappings['properties']['autocompleted'] = {
+                'type': 'text',
+                'analyzer': 'autocomplete'
+            }
+
+    for f in ['denomination_etablissement', 'libelle_etablissement',
+       'ville_etablissement', 'nom_etablissement_sort',
+       'nom_commun_etablissement', 'nom_etablissement',
+       'nom_bce_etablissement', 'nom_courant_etablissement',
+      'sigle_etablissement',
+       'libelle_avec_parent_etablissement']:
+        mappings['properties'][f] = {
+                'type': 'text',
+                'analyzer': 'heavy',
+                'fields': {
+                    'keyword': {
+                        'type':  'keyword'
+                    }
+                }
+            }
+    return mappings
+
+def reset_index(index, mappings) -> None:
+    es = get_client()
+    delete_index(index)
+
+    settings = {
+        'analysis': {
+            'filter': get_filters(),
+            'analyzer': get_analyzers()
+        },
+        'max_ngram_diff': 10
+    }
+
     response = es.indices.create(
         index=index,
         body={'settings': settings, 'mappings': mappings},
@@ -147,7 +230,7 @@ def reset_index_fresq(index: str) -> None:
     else:
         logger.debug(f'ERROR !')
         logger.debug(response)
-        
+
 def delete_index(index: str) -> None:
     logger.debug(f'Deleting {index}')
     es = get_client()

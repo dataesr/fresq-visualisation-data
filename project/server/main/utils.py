@@ -69,6 +69,12 @@ def get_raw_data_filename(suffix):
 def get_transformed_data_filename(suffix):
     return f'fresq_transformed_{suffix}.jsonl'
 
+def get_mentions_filename(suffix):
+    return f'mentions_{suffix}.jsonl'
+
+def get_etab_filename(suffix):
+    return f'etabs_{suffix}.jsonl'
+
 def validate_json_schema(data: list, _schema: dict) -> bool:
     is_valid = True
     try:

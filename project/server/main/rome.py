@@ -79,12 +79,12 @@ def get_rncp2rome():
                             rncp2rome[rncp_code] += rome[code_rome]
     json.dump(rncp2rome, open('rncp2rome.json', 'w'))
     logger.debug(f'rncp2rome oject created with {len(rncp2rome)} elements')
+    get_metiers(rncp2rome)
     return rncp2rome
 
-def get_metiers():
-    global rncp2rome
-    if rncp2rome is None:
-        rncp2rome = get_rncp2rome()
+def get_metiers(rncp2rome):
+    current_file = 'fresq_metiers.jsonl'
+    logger.debug(f'computing referential metier file {current_file}')
     x = list(rncp2rome.values())
     metiers=[]
     for e in x:
@@ -98,7 +98,6 @@ def get_metiers():
             metiers_map[row['code_rome']] = []
         metiers_map[row['code_rome']].append({'ogr': row['ogr'], 'label': row['label']})
     df_final['metiers'] = df_final['code_rome'].apply(lambda x:metiers_map[x])
-    current_file = 'fresq_metiers.jsonl'
     os.system(f'rm -rf {current_file}')
     to_jsonl(df_final.to_dict(orient='records'), current_file)
 

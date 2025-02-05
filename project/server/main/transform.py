@@ -5,7 +5,8 @@ import requests
 from retry import retry
 import pandas as pd
 import datetime
-from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename, to_jsonl, normalize
+import jsonlines
+from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename, to_jsonl, normalize, get_mentions_filename, get_etab_filename
 from project.server.main.paysage import enrich_with_paysage
 from project.server.main.monmaster import get_monmaster_elt
 from project.server.main.sise import get_years_in_sise, get_sise_elt
@@ -20,6 +21,7 @@ logger = get_logger(__name__)
 raw_data_suffix = '20250124'
 
 df_fresq_raw = None
+fresq_enriched = None
 
 def get_df_fresq_raw(raw_data_suffix):
     raw_data_filename = get_raw_data_filename(raw_data_suffix)
@@ -27,6 +29,7 @@ def get_df_fresq_raw(raw_data_suffix):
     return pd.read_json(raw_data_filename)
 
 def transform_raw_data(raw_data_suffix):
+    global fresq_enriched
     logger.debug('>>>>>>>>>> TRANSFORM >>>>>>>>>>')
     logger.debug(f'start fresq data from {raw_data_suffix} enrichment')
     global df_fresq_raw
@@ -44,6 +47,78 @@ def transform_raw_data(raw_data_suffix):
     os.system(f'rm -rf {transformed_data_filename}')
     to_jsonl(fresq_enriched, transformed_data_filename)
     upload_object('fresq', transformed_data_filename, transformed_data_filename)
+    #return fresq_enriched
+
+def get_transformed_data(raw_data_suffix):
+    transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
+    download_object('fresq', transformed_data_filename, transformed_data_filename)
+    r = jsonlines.open(transformed_data_filename)
+    return [elt for elt in r]
+
+def get_mentions(raw_data_suffix):
+    global fresq_enriched
+    if fresq_enriched is None:
+        fresq_enriched = get_transformed_data(raw_data_suffix)
+    logger.debug('>>>>>>>>>> TRANSFORM MENTIONS >>>>>>>>>>')
+    mentions_map = {}
+    for e in fresq_enriched:
+        if not isinstance(e.get('mention_id'), str):
+            continue
+        if e.get('mention_id') not in mentions_map:
+            current_mention = {'formations': []}
+            for f in ['mention_id', 'intitule_officiel', 'secteur', 'domaines',
+                  'mots_cles', 'specialites',
+                  'entityfishing_infos', 'has_entityfishing_infos',
+                  'monmaster_infos', 'has_monmaster_infos',
+                  'rncp_infos', 'has_rncp_infos',
+                  'rome_infos', 'has_rome_infos',
+                  'secteur_disciplinaire_sise',
+                  'domaine_rattachement_1_cti', 'domaine_rattachement_2_cti','domaine_rattachement_autre_cti',
+                  'libelle_formation_2', 'mention_normalized',
+                  'libelle_type_diplome', 'code_sise',
+                  'sise_secteur_disciplinaire', 'sise_discipline', 'sise_grande_discipline'
+                 ]:
+                if e.get(f):
+                    current_mention[f] = e.get(f)
+            mentions_map[e['mention_id']] = current_mention
+        current_formation = {}
+        for f in ['inf', 'fresq_etab_id', 'geoloc', 'mention_id',
+                'nom_commun_etablissement', 'nom_etablissement', 'uai_etablissement', 'academie']:
+            if e.get(f):
+                current_formation[f] = e[f]
+        mentions_map[e['mention_id']]['formations'].append(current_formation)
+        mentions_map[e['mention_id']]['nb_formations'] = len(mentions_map[e['mention_id']]['formations'])
+    x = list(mentions_map.values())
+    logger.debug(f'{len(x)} mentions detected')
+    df_mentions = pd.DataFrame(x)
+    current_file = get_mentions_filename(raw_data_suffix)
+    os.system(f'rm -rf {current_file}')
+    to_jsonl(df_mentions.to_dict(orient='records'), current_file)
+    upload_object('fresq', current_file, current_file)
+
+def get_etab(raw_data_suffix):
+    global fresq_enriched
+    if fresq_enriched is None:
+        fresq_enriched = get_transformed_data(raw_data_suffix)
+    logger.debug('>>>>>>>>>> TRANSFORM ETAB >>>>>>>>>>')
+    etabs = []
+    for e in fresq_enriched:
+        elt = {}
+        if e.get('geoloc'):
+            elt['geoloc'] = e['geoloc']
+        for f in e:
+            if '_etablissement' in f:
+                if isinstance(e[f], str):
+                    elt[f] = e[f]
+                #else:
+                #    logger.debug(f'skip {f}')
+        etabs.append(elt)
+    df_etabs = pd.DataFrame(etabs).drop_duplicates()
+    logger.debug(f'{len(df_etabs)} etabs detected')
+    current_file = get_etab_filename(raw_data_suffix)
+    os.system(f'rm -rf {current_file}')
+    to_jsonl(df_etabs.to_dict(orient='records'), current_file)
+    upload_object('fresq', current_file, current_file)
 
 def get_cycle(cat, lib):
     for k in ['Master', '+ 5', '+ 4']:
@@ -76,6 +151,7 @@ def enrich_fresq_elt(elt):
     mention_fresq = mention_fresq.replace('2nd degre', '2e degre')
     #mention_fresq = mention_fresq.replace('pratiques et ingenierie de la formation pif', 'pratiques et ingenierie de la formation')
     elt['mention_normalized'] = mention_fresq.title()
+    elt['mention_id']=mention_fresq.replace(' ', '')
     # cycle
     elt['cycle'] = get_cycle(elt['categorie_type_diplome'], elt['libelle_type_diplome'])
     # geoloc infos
