@@ -10,6 +10,9 @@ from project.server.main.logger import get_logger
 
 logger = get_logger(__name__)
 
+def create_dump_fresq():
+    raw_data_suffix = extract_from_fresq()
+
 def create_task_fresq(arg):
     extract = arg.get('extract', True)
     transform = arg.get('transform', True)

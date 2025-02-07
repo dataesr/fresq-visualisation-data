@@ -10,6 +10,7 @@ from project.server.main.logger import get_logger
 logger = get_logger(__name__)
 queue_name = "fresq"
 
+default_timeout = 43200000
 
 @main_blueprint.route("/", methods=["GET"])
 def home():
@@ -19,7 +20,7 @@ def home():
 def run_task_download():
     args = request.get_json(force=True)
     with Connection(redis.from_url(current_app.config["REDIS_URL"])):
-        q = Queue(queue_name, default_timeout=2160000)
+        q = Queue(name = queue_name, default_timeout=default_timeout)
         task = q.enqueue(create_task_fresq, args)
     response_object = {
         "status": "success",
