@@ -39,7 +39,7 @@ def get_sise_elt(paysage_id_to_use, list_code_sise_fresq, annee, fresq_id):
             'has_sise_infos': False, 'code_sise_found': None, 'nb_code_sise_found': 0}
     
     if paysage_id_to_use is None:
-        ans['sise_matching'] = 'no_paysage_id'
+        empty_ans['sise_matching'] = 'no_paysage_id'
         return empty_ans
 
     if list_code_sise_fresq is None or len(list_code_sise_fresq)==0:
