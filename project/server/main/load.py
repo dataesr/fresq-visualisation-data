@@ -11,8 +11,10 @@ from project.server.main.elastic import reset_index, refresh_index, get_es_host,
 
 logger = get_logger(__name__)
 
-def load_metiers(index_name='fresq-metiers'):
+def load_metiers(raw_data_suffix, index_name='fresq-metiers'):
     logger.debug('>>>>>>>>>> LOAD METIERS >>>>>>>>>>')
+    if index_name is None:
+        index_name = f'fresq-metiers-{raw_data_suffix}'
     current_file = 'fresq_metiers.jsonl'
     mappings_metiers = get_mappings_metiers()
     reset_index(index=index_name, mappings = mappings_metiers)
@@ -23,6 +25,8 @@ def load_metiers(index_name='fresq-metiers'):
 
 def load_etabs(raw_data_suffix, index_name='fresq-etablissements-2'):
     logger.debug('>>>>>>>>>> LOAD ETABS >>>>>>>>>>')
+    if index_name is None:
+        index_name = f'fresq-etablissements-{raw_data_suffix}'
     etab_filename = get_etab_filename(raw_data_suffix)
     download_object('fresq', get_etab_filename, get_etab_filename)
     mappings_etab = get_mappings_etab()
@@ -34,6 +38,8 @@ def load_etabs(raw_data_suffix, index_name='fresq-etablissements-2'):
 
 def load_mentions(raw_data_suffix, index_name='fresq-mentions'):
     logger.debug('>>>>>>>>>> LOAD MENTIONS >>>>>>>>>>')
+    if index_name is None:
+        index_name = f'fresq-mentions-{raw_data_suffix}'
     mentions_filename = get_mentions_filename(raw_data_suffix)
     download_object('fresq', get_mentions_filename, get_mentions_filename)
     mappings_mentions = get_mappings_mentions()
@@ -45,9 +51,11 @@ def load_mentions(raw_data_suffix, index_name='fresq-mentions'):
 
 def load_fresq(raw_data_suffix, index_name):
     logger.debug('>>>>>>>>>> LOAD FRESQ >>>>>>>>>>')
-    load_metiers('fresq-metiers')
-    load_mentions(raw_data_suffix, 'fresq-mentions')
-    load_etabs(raw_data_suffix, 'fresq-etablissements-2')
+    if index_name is None:
+        index_name = f'fresq-{raw_data_suffix}'
+    load_metiers(raw_data_suffix, index_name.replace('fresq-', 'fresq-metiers-'))
+    load_mentions(raw_data_suffix, index_name.replace('fresq-', 'fresq-mentions-'))
+    load_etabs(raw_data_suffix, index_name.replace('fresq-', 'fresq-etablissements-'))
     transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
     download_object('fresq', transformed_data_filename, transformed_data_filename)
     mappings_fresq = get_mappings_fresq()

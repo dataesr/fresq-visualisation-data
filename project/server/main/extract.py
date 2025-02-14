@@ -81,19 +81,19 @@ def get_full_data():
     return full_data
 
 
-def save_data(data):
-    current_date = get_today()
-    current_file = f'fresq_raw_{current_date}.json'
+def save_data(data, suffix):
+    current_file = f'fresq_raw_{suffix}.json'
     os.system(f'rm -rf {current_file}')
     json.dump(data, open(current_file, 'w'))
     os.system(f'rm -rf {current_file}.gz')
     os.system(f'gzip {current_file}')
     upload_object('fresq', f'{current_file}.gz', f'{current_file}.gz')
     os.system(f'rm -rf {current_file}.gz')
-    return current_date
 
 def extract_from_fresq():
     logger.debug('>>>>>>>>>> EXTRACT >>>>>>>>>>')
     full_data = get_full_data()
-    suffix = save_data(full_data)
-    return suffix
+    current_date = get_today()
+    save_data(full_data, current_date)
+    save_data(full_data, 'latest')
+    return current_date

@@ -3,7 +3,8 @@ import datetime
 import os
 import requests
 from project.server.main.extract import extract_from_fresq
-from project.server.main.transform import transform_raw_data
+from project.server.main.paysage import get_etabs
+from project.server.main.transform import transform_raw_data, get_mentions
 from project.server.main.load import load_fresq
 
 from project.server.main.logger import get_logger
@@ -32,11 +33,11 @@ def create_task_fresq(arg):
     assert(isinstance(raw_data_suffix, str))
 
     if transform:
+        # etabs
+        get_etabs(raw_data_suffix)
         transform_raw_data(raw_data_suffix)
         # mentions
         get_mentions(raw_data_suffix)
-        # etabs
-        get_etabs(raw_data_suffix)
 
     if load:
         load(raw_data_suffix, index_name)

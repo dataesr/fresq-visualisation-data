@@ -22,6 +22,11 @@ logger = get_logger(__name__)
 
 import datetime
 
+def get_df_fresq_raw(raw_data_suffix):
+    raw_data_filename = get_raw_data_filename(raw_data_suffix)
+    download_object('fresq', raw_data_filename, raw_data_filename)
+    return pd.read_json(raw_data_filename)
+
 def get_filename_from_cd(cd: str):
     """ Get filename from content-disposition """
     if not cd:
