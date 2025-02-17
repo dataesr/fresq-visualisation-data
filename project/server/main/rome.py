@@ -100,6 +100,7 @@ def get_metiers(rncp2rome):
     df_final['metiers'] = df_final['code_rome'].apply(lambda x:metiers_map[x])
     os.system(f'rm -rf {current_file}')
     to_jsonl(df_final.to_dict(orient='records'), current_file)
+    upload_object('fresq', current_file, current_file)
 
 def get_rome_elt(num_rncp):
     ans = {'has_rome_infos': False, 'rome_infos': {}}

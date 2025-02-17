@@ -3,7 +3,7 @@ import retry
 import os
 import pickle
 import pandas as pd
-from project.server.main.utils import get_df_fresq_raw, get_etab_filename, to_jsonl
+from project.server.main.utils import get_df_fresq_raw, get_etab_filename, to_jsonl, save_logs
 from project.server.main.utils_swift import upload_object, download_object
 from project.server.main.logger import get_logger
 logger = get_logger(__name__)
@@ -25,7 +25,7 @@ def enrich_with_paysage(elt):
         final_uai_paysage_correspondance = pickle.load(open('final_uai_paysage_correspondance.pkl', 'rb'))
     uai = elt.get('uai_etablissement')
     if not isinstance(uai, str):
-        logger.debug(f"error;noUAI;{elt['inf']}")
+        logger.debug(f"data_quality;paysage;noUAI;{elt['inf']}")
         return elt
     if uai not in final_uai_paysage_correspondance:
         logger.debug(f'{uai} not in final_uai_paysage_correspondance ??')
@@ -109,6 +109,7 @@ def get_etabs(raw_data_suffix):
     upload_object('fresq', current_file, current_file)
     pickle.dump(final_uai_paysage_correspondance, open('final_uai_paysage_correspondance.pkl', 'wb'))
     upload_object('fresq', 'final_uai_paysage_correspondance.pkl', 'final_uai_paysage_correspondance.pkl')
+    save_logs()
 
 def get_geoloc_infos(paysage_elt):
     new = {}

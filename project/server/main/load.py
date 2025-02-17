@@ -6,7 +6,7 @@ from retry import retry
 
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object, download_object
-from project.server.main.utils import get_transformed_data_filename, get_mentions_filename, get_etab_filename
+from project.server.main.utils import get_transformed_data_filename, get_mentions_filename, get_etab_filename, save_logs
 from project.server.main.elastic import reset_index, refresh_index, get_es_host, get_mappings_fresq, get_mappings_mentions, get_mappings_etab, get_mappings_metiers
 
 logger = get_logger(__name__)
@@ -16,6 +16,7 @@ def load_metiers(raw_data_suffix, index_name='fresq-metiers'):
     if index_name is None:
         index_name = f'fresq-metiers-{raw_data_suffix}'
     current_file = 'fresq_metiers.jsonl'
+    download_object('fresq', current_file, current_file)
     mappings_metiers = get_mappings_metiers()
     reset_index(index=index_name, mappings = mappings_metiers)
     es_host = get_es_host()
@@ -28,7 +29,7 @@ def load_etabs(raw_data_suffix, index_name='fresq-etablissements-2'):
     if index_name is None:
         index_name = f'fresq-etablissements-{raw_data_suffix}'
     etab_filename = get_etab_filename(raw_data_suffix)
-    download_object('fresq', get_etab_filename, get_etab_filename)
+    download_object('fresq', etab_filename, etab_filename)
     mappings_etab = get_mappings_etab()
     reset_index(index=index_name, mappings = mappings_etab)
     es_host = get_es_host()
@@ -41,7 +42,7 @@ def load_mentions(raw_data_suffix, index_name='fresq-mentions'):
     if index_name is None:
         index_name = f'fresq-mentions-{raw_data_suffix}'
     mentions_filename = get_mentions_filename(raw_data_suffix)
-    download_object('fresq', get_mentions_filename, get_mentions_filename)
+    download_object('fresq', mentions_filename, mentions_filename)
     mappings_mentions = get_mappings_mentions()
     reset_index(index=index_name, mappings = mappings_mentions)
     es_host = get_es_host()
@@ -50,12 +51,12 @@ def load_mentions(raw_data_suffix, index_name='fresq-mentions'):
     refresh_index(index_name)
 
 def load_fresq(raw_data_suffix, index_name):
-    logger.debug('>>>>>>>>>> LOAD FRESQ >>>>>>>>>>')
     if index_name is None:
         index_name = f'fresq-{raw_data_suffix}'
     load_metiers(raw_data_suffix, index_name.replace('fresq-', 'fresq-metiers-'))
     load_mentions(raw_data_suffix, index_name.replace('fresq-', 'fresq-mentions-'))
     load_etabs(raw_data_suffix, index_name.replace('fresq-', 'fresq-etablissements-'))
+    logger.debug('>>>>>>>>>> LOAD FRESQ >>>>>>>>>>')
     transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
     download_object('fresq', transformed_data_filename, transformed_data_filename)
     mappings_fresq = get_mappings_fresq()
@@ -64,3 +65,4 @@ def load_fresq(raw_data_suffix, index_name):
     elasticimport = f"elasticdump --input={transformed_data_filename} --output={es_host}{index_name} --type=data --limit 1000 --noRefresh " + "--transform='doc._source=Object.assign({},doc)'"
     os.system(elasticimport)
     refresh_index(index_name)
+    save_logs()

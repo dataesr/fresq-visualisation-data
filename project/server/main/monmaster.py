@@ -43,14 +43,22 @@ def get_monmaster_elt(inf, uai):
     if df_monmaster is None:
         df_monmaster = load_monmaster()
     ans = {}
+    has_monmaster_infos = False
     monmaster_elts = df_monmaster[(df_monmaster.index==inf) & (df_monmaster.uai==uai)].to_dict(orient='records')
     if(len(monmaster_elts)>1):
         logger.debug(f'{inf} {uai} apparait {len(monmaster_elts)} fois dans les données monmaster')
-        logger.debug(f"data_issue;multiple_monmaster_elts;{inf};{uai}")
-    if len(monmaster_elts) >= 1:
+        logger.debug(f"data_quality;monmaster;multiple_monmaster_elts;{inf};{uai}")
+    nb_masters = len(monmaster_elts)
+    ans['nb_masters'] = nb_masters
+    ans['masters'] = []
+    for monmaster_elt in monmaster_elts:
+        current_elt = {}
         # tous ces champs ont disparus
-        for f in ['courses', 'keyWords', 'listSpecialityCourse' ]:
-            if monmaster_elts[0].get(f):
-                ans[f] = monmaster_elts[0][f]
-        return {'monmaster_infos': ans, 'has_monmaster_infos': True}
-    return {'monmaster_infos': ans, 'has_monmaster_infos': False}
+        for f in ['courses', 'keyWords', 'listSpecialityCourse', 'ifc', 'intituleMention', 'intituleParcours', 'inmp', 'commentaire', 'motifsLibres' ]:
+            if monmaster_elt.get(f):
+                current_elt[f] = monmaster_elt[f]
+                has_monmaster_infos = True
+        if current_elt:
+            current_elt['inm'] = inf
+            ans['masters'].append(current_elt)
+    return {'monmaster_infos': ans, 'has_monmaster_infos': has_monmaster_infos}

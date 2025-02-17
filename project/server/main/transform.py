@@ -6,7 +6,7 @@ from retry import retry
 import pandas as pd
 import datetime
 import jsonlines
-from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename, to_jsonl, normalize, get_mentions_filename, get_etab_filename, get_df_fresq_raw
+from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename, to_jsonl, normalize, get_mentions_filename, get_etab_filename, get_df_fresq_raw, save_logs
 from project.server.main.paysage import enrich_with_paysage
 from project.server.main.monmaster import get_monmaster_elt
 from project.server.main.sise import get_years_in_sise, get_sise_elt
@@ -49,6 +49,7 @@ def transform_raw_data(raw_data_suffix='latest'):
     os.system(f'rm -rf {transformed_data_filename}')
     to_jsonl(fresq_enriched, transformed_data_filename)
     upload_object('fresq', transformed_data_filename, transformed_data_filename)
+    save_logs()
     #return fresq_enriched
 
 def get_transformed_data(raw_data_suffix='latest'):
@@ -114,19 +115,18 @@ def get_cycle(cat, lib):
     return 'other'
 
 def enrich_fresq_elt(elt):
-    fresq_id = elt['inf']
-    assert(isinstance(fresq_id, str))
-    if(len(fresq_id)<5):
-        logger.debug(f"data_issue;bad INF?;{fresq_id};")
+    inf_id = elt['inf']
+    assert(isinstance(inf_id, str))
+    if(len(inf_id)<5):
+        logger.debug(f"data_quality;fresq;ill_formed_inf;{inf_id}")
     uai_fresq = elt.get('uai_etablissement', '')
     paysage_id_to_use = elt.get('paysage_id_to_use', '')
     if len(uai_fresq)<5:
-        logger.debug(f"data_issue;bad UAI;{fresq_id};{uai_fresq}")
+        logger.debug(f"data_quality;fresq;ill_formed_uai;{inf_id};{uai_fresq}")
     if not isinstance(paysage_id_to_use, str) or len(paysage_id_to_use)<2:
-        logger.debug(f"data_issue;no_paysage_id_found;{fresq_id};{uai_fresq}")
+        logger.debug(f"data_quality;fresq;no_paysage_id_found;{inf_id};{uai_fresq}")
     # real PID is inf x UAI
-    #fresq_etab_id = f'{fresq_id}_{uai_fresq}'
-    fresq_etab_id = f'{fresq_id}_{paysage_id_to_use}'
+    fresq_etab_id = f'{inf_id}_{paysage_id_to_use}'
     elt['fresq_etab_id'] = fresq_etab_id
     # mention
     mention_fresq = normalize(elt.get('intitule_officiel'), remove_space=False)
@@ -148,9 +148,9 @@ def enrich_fresq_elt(elt):
                 longitude = float(geoloc_s[0].replace('[', ''))
                 latitude = float(geoloc_s[1].replace(']', ''))
             else:
-                logger.debug(f"data_issue;geoloc_ill_formed;{fresq_id};{uai_fresq};{geoloc_s}")
+                logger.debug(f"data_quality;fresq;geoloc_ill_formed;{inf_id};{uai_fresq};{geoloc_s}")
     #monmaster
-    monmaster_infos = get_monmaster_elt(fresq_id, uai_fresq) # todo ? use paysage ?
+    monmaster_infos = get_monmaster_elt(inf_id, uai_fresq) # todo ? use paysage ?
     elt.update(monmaster_infos)
     
     #entity fishing
@@ -167,14 +167,14 @@ def enrich_fresq_elt(elt):
             assert(isinstance(c, str))
     else:
         assert(elt.get('code_sise') is None)
-        logger.debug(f"data_issue;no_codeSISE;{fresq_id};{paysage_id_to_use}")
+        logger.debug(f"data_quality;fresq;no_codeSISE;{inf_id};{paysage_id_to_use}")
     sise_infos = {}
     nb_has_sise_infos = 0
     elt['has_sise_infos_years'] = []
     annees = get_years_in_sise()
     for annee in annees:
         #uai_to_use = uai_fresq # TODO better with previous UAIs
-        sise_infos[annee] = get_sise_elt(paysage_id_to_use, list_code_sise_fresq, annee, fresq_id)
+        sise_infos[annee] = get_sise_elt(paysage_id_to_use, list_code_sise_fresq, annee, inf_id)
         if sise_infos[annee].get('has_sise_infos'):
             nb_has_sise_infos += 1
             elt['has_sise_infos_years'].append(annee)
@@ -202,14 +202,14 @@ def enrich_fresq_elt(elt):
     elt['sise_infos'] = sise_infos
     if list_code_sise_fresq and (elt['nb_has_sise_infos'] == 0):
         logger.debug(f'code SISE {list_code_sise_fresq} absent from SISE data')
-        logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)}")
+        logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{inf_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)}")
 
     num_rncp = None
     if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:
         num_rncp = elt['num_rncp']
     else:
         assert(elt.get('num_rncp') is None)
-        logger.debug(f"data_issue;no_RNCP;{fresq_id};{paysage_id_to_use}")
+        logger.debug(f"data_quality;fresq;no_RNCP;{inf_id};{paysage_id_to_use}")
 
     # rncp
     rncp_infos = get_rncp_elt(num_rncp)

@@ -7,7 +7,7 @@ import pandas as pd
 import datetime
 import time
 
-from project.server.main.utils import get_today
+from project.server.main.utils import get_today, save_logs
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object, download_object
 
@@ -96,4 +96,5 @@ def extract_from_fresq():
     current_date = get_today()
     save_data(full_data, current_date)
     save_data(full_data, 'latest')
+    save_logs()
     return current_date

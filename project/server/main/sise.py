@@ -56,7 +56,7 @@ def get_sise_elt(paysage_id_to_use, list_code_sise_fresq, annee, fresq_id):
     df_sise_filtered = df_sise_annee[df_sise_annee.DIPLOM.apply(lambda x: x in set_code_sise_fresq)]
     if len(df_sise_filtered) == 0:
     #    logger.debug(f'code SISE {sise_fresq} absent from SISE data in {annee}')
-    #    logger.debug(f"data_issue;codeSISE_absent_from_SISE_data;{fresq_id};{uai_fresq};{sise_fresq};{annee}")
+        logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{fresq_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)};{annee}")
         return empty_ans
         #method = 'libelle1_uai'
         #df_sise_filtered = df_sise_annee[df_sise_annee.index==mention_fresq]
@@ -109,19 +109,24 @@ def get_sise_elt(paysage_id_to_use, list_code_sise_fresq, annee, fresq_id):
     df_test_code_sise = df_sise_filtered['DIPLOM'].value_counts()
     assert(len(df_test_code_sise) <= len(list_code_sise_fresq))
 
+    sise_discipline, sise_grande_discipline, sise_secteur_disciplinaire = [], [], []
     for k in ['discipline', 'grande_discipline', 'secteur_disciplinaire']:
         df_test = df_sise_final[k].value_counts()
+        values = df_test.index.to_list()
+        if k == 'discipline':
+            sise_discipline = values
+        if k == 'grande_discipline':
+            sise_grande_discipline = values
+        if k == 'secteur_disciplinaire':
+            sise_secteur_disciplinaire = values
         if len(df_test) > 1:
-            values = "-".join(df_test.index.to_list())
             logger.debug(f"more than 1 {k}: {values} for {paysage_id_to_use};{'-'.join(list_code_sise_fresq)};{annee}")
+            logger.debug(f"data_quality;sise;multiple_{k}_in_SISE;{fresq_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)};{annee}")
 
     ans = df_sise_final.to_dict(orient='records')
     if ans:
         code_sise_found = df_test_code_sise.index.to_list()
         nb_code_sise_found = len(code_sise_found)
-        sise_discipline = df_sise_final.head(1).discipline.values[0]
-        sise_grande_discipline = df_sise_final.head(1).grande_discipline.values[0]
-        sise_secteur_disciplinaire = df_sise_final.head(1).secteur_disciplinaire.values[0]
         return {f'sise_matching': method, f'sise_infos': ans, f'has_sise_infos': True,
                 f'code_sise_found': code_sise_found, 'nb_code_sise_found': nb_code_sise_found,
                         'sise_discipline': sise_discipline, 'sise_grande_discipline': sise_grande_discipline,

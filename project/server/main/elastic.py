@@ -81,6 +81,9 @@ def get_analyzers() -> dict:
 
 def get_mappings_fresq():
     mappings = { 'properties': {} }
+    mappings['properties']['has_sise_infos_years'] = {
+                'type': 'text'
+            }
 
     mappings['properties']['autocompleted'] = {
                 #'type': 'search_as_you_type',
@@ -157,7 +160,7 @@ def get_mappings_mentions():
                 'type': 'text',
                 'analyzer': 'autocomplete'
             }
-
+    
     for f in ['mots_cles', 'specialites', 'domaines', 
               'domaine_rattachement_1_cti', 'domaine_rattachement_2_cti', 'domaine_rattachement_autre_cti',
               'intitule_officiel', 
@@ -242,3 +245,27 @@ def refresh_index(index):
     es = get_client()
     response = es.indices.refresh(index=index)
     logger.debug(response)
+
+def update_alias(index_name, alias):
+    es = get_client()
+    next_index = index_name
+    actions = []
+    was = ''
+    try:
+        previous_index_list = list(es.indices.get_alias(index=alias).keys())
+        previous_index = previous_index_list[0]
+        actions.append({'remove': {'index': previous_index, 'alias': alias}})
+        was = f'(was before {previous_index})'
+    except:
+        pass
+    actions.append({'add': {'index': next_index, 'alias': alias}})
+    es.indices.update_aliases(body={
+        'actions': actions
+    })
+    logger.debug(f'set alias {alias} on index {index_name} {was}')
+
+def update_all_aliases(suffix, alias_type):
+    update_alias(f'fresq-mentions-{suffix}', f'fresq-mentions-{alias_type}')
+    update_alias(f'fresq-etablissements-{suffix}', f'fresq-etablissements-{alias_type}')
+    update_alias(f'fresq-metiers-{suffix}', f'fresq-metiers-{alias_type}')
+    update_alias(f'fresq-{suffix}', f'fresq-{alias_type}')

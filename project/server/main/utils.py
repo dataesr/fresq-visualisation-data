@@ -22,6 +22,10 @@ logger = get_logger(__name__)
 
 import datetime
 
+def save_logs():
+    today = get_today()
+    upload_object('fresq', 'logs.log', f'logs_{today}.log')
+
 def get_df_fresq_raw(raw_data_suffix):
     raw_data_filename = get_raw_data_filename(raw_data_suffix)
     download_object('fresq', raw_data_filename, raw_data_filename)
