@@ -84,6 +84,7 @@ def get_etabs(raw_data_suffix):
         if len(paysage_elt) == 1:
             paysage_id = paysage_elt[0]['id']
             geoloc = get_geoloc_infos(paysage_elt[0])
+            d.update(geoloc)
             paysage_id_to_use = paysage_id
             uai_to_paysage_method = 'direct'
         if parent_elt:
