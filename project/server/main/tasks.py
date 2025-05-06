@@ -7,6 +7,7 @@ from project.server.main.paysage import get_etabs
 from project.server.main.transform import transform_raw_data, get_mentions
 from project.server.main.load import load_fresq
 from project.server.main.utils import get_today
+from project.server.main.elastic import update_all_aliases
 from project.server.main.logger import get_logger
 
 logger = get_logger(__name__)
@@ -43,3 +44,6 @@ def create_task_fresq(arg):
 
     if load:
         load_fresq(raw_data_suffix, index_name)
+
+def update_aliases(suffix, alias_type):
+    update_all_aliases(suffix, alias_type)

@@ -18,7 +18,7 @@ from project.server.main.ef import get_entityfishing
 
 logger = get_logger(__name__)
 
-raw_data_suffix = '20250124'
+raw_data_suffix = 'latest'
 
 df_fresq_raw = None
 fresq_enriched = None
@@ -165,7 +165,14 @@ def enrich_fresq_elt(elt):
         list_code_sise_fresq = elt['code_sise']
         for c in list_code_sise_fresq:
             assert(isinstance(c, str))
-    else:
+    elif 'formation_details' in elt:
+        if isinstance(elt['formation_details'].get('parcours_diplomants_full'), list):
+            for parcours in elt['formation_details'].get('parcours_diplomants_full'):
+                if parcours.get('code_sise'):
+                    list_code_sise_fresq.append(str(parcours['code_sise']))
+        if list_code_sise_fresq:
+            logger.debug(f'code sise for {fresq_etab_id} : {list_code_sise_fresq}')
+    if len(list_code_sise_fresq) == 0:
         assert(elt.get('code_sise') is None)
         logger.debug(f"data_quality;fresq;no_codeSISE;{inf_id};{paysage_id_to_use}")
     sise_infos = {}
@@ -204,19 +211,28 @@ def enrich_fresq_elt(elt):
         logger.debug(f'code SISE {list_code_sise_fresq} absent from SISE data')
         logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{inf_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)}")
 
-    num_rncp = None
+    num_rncps = []
     if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:
-        num_rncp = elt['num_rncp']
-    else:
+        num_rncps = [elt['num_rncp']]
+    elif isinstance(elt.get('num_rncp'), list):
+        num_rncps = elt['num_rncp']
+    elif 'formation_details' in elt:
+        if isinstance(elt['formation_details'].get('parcours_diplomants_full'), list):
+            for parcours in elt['formation_details'].get('parcours_diplomants_full'):
+                if parcours.get('num_rncp'):
+                    num_rncps.append(str(parcours['num_rncp']))
+        if num_rncps:
+            logger.debug(f'code sise for {fresq_etab_id} : {num_rncps}')
+    if len(num_rncps) == 0:
         assert(elt.get('num_rncp') is None)
         logger.debug(f"data_quality;fresq;no_RNCP;{inf_id};{paysage_id_to_use}")
 
     # rncp
-    rncp_infos = get_rncp_elt(num_rncp)
+    rncp_infos = get_rncp_elt(num_rncps)
     elt.update(rncp_infos)
 
     # rome
-    rome_infos = get_rome_elt(num_rncp)
+    rome_infos = get_rome_elt(num_rncps)
     elt.update(rome_infos)
     
     return elt

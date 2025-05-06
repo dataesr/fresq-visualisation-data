@@ -77,6 +77,9 @@ def get_rncp2rome():
                             rncp2rome[rncp_code] = []
                         if code_rome in rome:
                             rncp2rome[rncp_code] += rome[code_rome]
+    for rncp_code in rncp2rome:
+        for k in rncp2rome[rncp_code]:
+            k['rncp'] = rncp_code
     json.dump(rncp2rome, open('rncp2rome.json', 'w'))
     logger.debug(f'rncp2rome oject created with {len(rncp2rome)} elements')
     get_metiers(rncp2rome)
@@ -102,13 +105,17 @@ def get_metiers(rncp2rome):
     to_jsonl(df_final.to_dict(orient='records'), current_file)
     upload_object('fresq', current_file, current_file)
 
-def get_rome_elt(num_rncp):
+def get_rome_elt(num_rncps):
     ans = {'has_rome_infos': False, 'rome_infos': {}}
-    if num_rncp is None:
+    if not isinstance(num_rncps, list):
         return ans
     global rncp2rome
     if rncp2rome is None:
         rncp2rome = get_rncp2rome()
-    if num_rncp in rncp2rome:
-        return {'has_rome_infos': True, 'rome_infos': rncp2rome[num_rncp]}
+    rome_infos = []
+    for num_rncp in num_rncps:
+        if num_rncp in rncp2rome:
+            rome_infos += rncp2rome[num_rncp]
+    if rome_infos:
+        ans = {'has_rome_infos': True, 'rome_infos': rome_infos}
     return ans

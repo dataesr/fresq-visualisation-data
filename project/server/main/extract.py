@@ -19,7 +19,7 @@ FRESQ_PASSWORD = os.getenv('FRESQ_PASSWORD')
 
 FRESQ_BASE_URL = os.getenv('FRESQ_BASE_URL')
 URL_DIPLOMES = f'{FRESQ_BASE_URL}/api/referentiels/type_diplome'
-URL_SEARCH = f'{FRESQ_BASE_URL}/api/recherche/'
+URL_SEARCH = f'{FRESQ_BASE_URL}/api/recherche'
 
 @retry(delay=300, tries=3, logger=logger)
 def get_headers():
@@ -71,6 +71,38 @@ def get_data(code_diplome):
     assert(len(data) < 9999)
     return data
 
+@retry(delay=300, tries=5, logger=logger)
+def get_formation(technical_id, code_diplome):
+    api_specific = ''
+    if code_diplome == 'BUT':
+        api_specific = 'diplome_but'
+    url = f'https://fresq.enseignementsup.gouv.fr/api/diplomes/{api_specific}/{technical_id}?stock=true'
+    current_headers = get_headers()
+    logger.debug(url)
+    r = requests.get(url, headers=current_headers).json()
+    time.sleep(1)
+    formation = r['data']
+    parcours = formation.get('parcours_diplomants', [])
+    parcours_full = []
+    if isinstance(parcours, list):
+        for p in parcours:
+            p_complet = get_parcours(p, code_diplome)
+            parcours_full.append(p_complet)
+    formation['parcours_diplomants_full'] = parcours_full
+    return formation
+
+@retry(delay=300, tries=5, logger=logger)
+def get_parcours(parcours_id, code_diplome):
+    api_specific = ''
+    if code_diplome == 'BUT':
+        api_specific = 'diplome_but'
+    url = f'https://fresq.enseignementsup.gouv.fr/api/parcours-diplomants/{parcours_id}'
+    current_headers = get_headers()
+    r = requests.get(url, headers=current_headers).json()
+    time.sleep(1)
+    ans = r['data']
+    return ans
+
 def get_full_data():
     full_data = []
     code_diplomes = get_code_diplomes()
@@ -78,6 +110,10 @@ def get_full_data():
         new_data = get_data(c)
         full_data += new_data
     logger.debug(f'{len(full_data)} elements retrieved for all codes')
+    for d in full_data:
+        code_diplome = d['data']['code_type_diplome'] 
+        if code_diplome in ['BUT']:
+            d['data']['formation_details'] = get_formation(d['recordId'], code_diplome)
     return full_data
 
 

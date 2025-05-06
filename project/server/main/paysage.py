@@ -48,7 +48,14 @@ def get_etabs(raw_data_suffix):
         data_etab.append(etab_elt)
     df_etabs = pd.DataFrame(data_etab).drop_duplicates()
     uais = list(set(df_etabs.uai_etablissement.to_list()))
-    assert(len(uais) == len(df_etabs))
+    if(len(uais) != len(df_etabs)):
+        logger.debug(f'WARNING !! nb_uai = {len(uais)} vs nb_etabs = {len(df_etabs)}')
+        df_count = pd.DataFrame(df_etabs.uai_etablissement.value_counts())
+        df_count_dup = df_count[df_count.uai_etablissement > 1]
+        logger.debug(df_count_dup)
+        for uai_pb in df_count_dup.index.to_list():
+            logger.debug(uai_pb)
+            logger.debug(df_etabs[df_etabs.uai_etablissement.apply(lambda x: x == uai_pb)].to_dict())
     logger.debug(f'Number UAI (main) found = {len(uais)}')
     #tmp = []
     #for d in data:
@@ -146,8 +153,13 @@ def get_paysage_search(uai):
             if d.get('structureStatus')=='active':
                 data_active.append(d)
     if(len(data_active) > 1):
-        logger.debug(f'pb uai {uai}')
-        assert(len(data_active)==1)
+        logger.debug(f'pb uai {uai} that has {len(data_active)} paysage elements, actives, with uai {uai}')
+        data_active_top = []
+        for d in data_active:
+            if len(get_paysage_parents(d['id'])) == 0:
+                data_active_top.append(d)
+        data_active = data_active_top
+        logger.debug(f'keep only top orga, remains now {len(data_active_top)}')
     parents = []
     successeurs = []
     if data_active:

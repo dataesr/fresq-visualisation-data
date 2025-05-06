@@ -40,19 +40,23 @@ def get_rncp():
     logger.debug(f'rncp object created with {len(df_rncp)} elements')
     return df_rncp
 
-def get_rncp_elt(num_rncp):
+def get_rncp_elt(num_rncps):
     ans = {'has_rncp_infos': False, 'rncp_infos': {}}
-    if num_rncp is None:
+    if not isinstance(num_rncps, list):
         return ans
     global df_rncp
     if df_rncp is None:
         df_rncp = get_rncp()
-    df_tmp = df_rncp[df_rncp.index==num_rncp]#['type_emploi_accessibles']
-    rncp_infos = {}
+    df_tmp = df_rncp[df_rncp.index.isin(num_rncps)]#['type_emploi_accessibles']
+    rncp_infos = []
     if len(df_tmp)>0:
-        elt = df_tmp.to_dict(orient='records')[0]
-        for f in ['type_emploi_accessibles']:
-            rncp_infos[f] = elt[f]
+        for elt in df_tmp.reset_index().to_dict(orient='records'):
+            new_elt = {}
+            new_elt['rncp'] = elt['numero_fiche']
+            for f in ['type_emploi_accessibles']:
+                if elt.get(f):
+                    new_elt[f] = elt[f].strip()
+            rncp_infos.append(new_elt)
         return {'has_rncp_infos': True, 'rncp_infos': rncp_infos}
     return ans
 
