@@ -19,6 +19,7 @@ def create_task_fresq(arg):
     extract = arg.get('extract', True)
     transform = arg.get('transform', True)
     load = arg.get('load', True)
+    change_alias = arg.get('change_alias', False)
 
     today = get_today()
     index_name = arg.get('index_name', f'fresq-{today}')
@@ -45,5 +46,6 @@ def create_task_fresq(arg):
     if load:
         load_fresq(raw_data_suffix, index_name)
 
-def update_aliases(suffix, alias_type):
-    update_all_aliases(suffix, alias_type)
+    if change_alias:
+        dated_suffix = index_name.replace('fresq-', '')
+        update_all_aliases(dated_suffix, 'staging')
