@@ -21,6 +21,10 @@ FRESQ_BASE_URL = os.getenv('FRESQ_BASE_URL')
 URL_DIPLOMES = f'{FRESQ_BASE_URL}/api/referentiels/type_diplome'
 URL_SEARCH = f'{FRESQ_BASE_URL}/api/recherche'
 
+
+API_SPECIFIC = {}
+API_SPECIFIC['BUT'] = 'diplome_but'
+
 @retry(delay=300, tries=3, logger=logger)
 def get_headers():
     r = requests.post(FRESQ_AUTHENT_URL, data={
@@ -74,33 +78,49 @@ def get_data(code_diplome):
 @retry(delay=300, tries=5, logger=logger)
 def get_formation(technical_id, code_diplome):
     api_specific = ''
-    if code_diplome == 'BUT':
-        api_specific = 'diplome_but'
+    if code_diplome in ['BUT']:
+        api_specific = API_SPECIFIC[code_diplome]
     url = f'https://fresq.enseignementsup.gouv.fr/api/diplomes/{api_specific}/{technical_id}?stock=true'
     current_headers = get_headers()
+    time.sleep(1)
     logger.debug(url)
     r = requests.get(url, headers=current_headers).json()
-    time.sleep(1)
     formation = r['data']
     parcours = formation.get('parcours_diplomants', [])
     parcours_full = []
+    # pour les parcours, malheureusement, un appel par parcours pour avoir le code sise
     if isinstance(parcours, list):
         for p in parcours:
             p_complet = get_parcours(p, code_diplome)
             parcours_full.append(p_complet)
     formation['parcours_diplomants_full'] = parcours_full
+    # pour les étapes, un seul appel pour avoir la liste
+    if isinstance(formation.get('etapes'), list) and len(formation['etapes'])>0:
+        formation['etapes_details'] = get_etapes_list(technical_id, code_diplome)
     return formation
 
 @retry(delay=300, tries=5, logger=logger)
 def get_parcours(parcours_id, code_diplome):
     api_specific = ''
-    if code_diplome == 'BUT':
-        api_specific = 'diplome_but'
+    if code_diplome in ['BUT']:
+        api_specific = API_SPECIFIC[code_diplome]
     url = f'https://fresq.enseignementsup.gouv.fr/api/parcours-diplomants/{parcours_id}'
     current_headers = get_headers()
-    r = requests.get(url, headers=current_headers).json()
     time.sleep(1)
+    r = requests.get(url, headers=current_headers).json()
     ans = r['data']
+    return ans
+
+@retry(delay=300, tries=5, logger=logger)
+def get_etapes_list(technical_id, code_diplome):
+    api_specific = ''
+    if code_diplome in ['BUT']:
+        api_specific = API_SPECIFIC[code_diplome]
+    url = f'https://fresq.enseignementsup.gouv.fr/api/diplomes/{api_specific}/{technical_id}/etapes?pageSize=100'
+    current_headers = get_headers()
+    time.sleep(1)
+    r = requests.get(url, headers=current_headers).json()
+    ans = [e['data'] for e in r]
     return ans
 
 def get_full_data():
