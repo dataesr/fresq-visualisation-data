@@ -6,6 +6,20 @@ URL_SISE = 'https://data.enseignementsup-recherche.gouv.fr/api/explore/v2.1/cata
 
 df_sise_dict, years_in_sise = None, []
 
+def get_clean_sise_code_as_list(x):
+    ans = []
+    if isinstance(x, list):
+        for c in x:
+            ans += get_clean_sise_code_as_list(c)
+    else:
+        y = str(x).strip()
+        if len(y) != 7:
+            logger.debug(f'UNEXPECTED SISE: ;{x};')
+        for k in y.replace(',', ' ').replace(';', ' ').split(' '):
+            if len(k.strip()) == 7:
+                ans.append(k)
+    return ans
+
 def get_sise():
     logger.debug('>>>>> get SISE >>>>>')
     try:
@@ -55,8 +69,7 @@ def get_sise_elt(paysage_id_to_use, list_code_sise_fresq, annee, fresq_id):
     set_code_sise_fresq = set(list_code_sise_fresq)
     df_sise_filtered = df_sise_annee[df_sise_annee.DIPLOM.apply(lambda x: x in set_code_sise_fresq)]
     if len(df_sise_filtered) == 0:
-    #    logger.debug(f'code SISE {sise_fresq} absent from SISE data in {annee}')
-        logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{fresq_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)};{annee}")
+        #logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{fresq_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)};{annee}")
         return empty_ans
         #method = 'libelle1_uai'
         #df_sise_filtered = df_sise_annee[df_sise_annee.index==mention_fresq]

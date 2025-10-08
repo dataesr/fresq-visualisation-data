@@ -24,6 +24,7 @@ URL_SEARCH = f'{FRESQ_BASE_URL}/api/recherche'
 
 API_SPECIFIC = {}
 API_SPECIFIC['BUT'] = 'diplome_but'
+API_SPECIFIC['M'] = 'diplome_master'
 
 @retry(delay=300, tries=3, logger=logger)
 def get_headers():
@@ -78,12 +79,11 @@ def get_data(code_diplome):
 @retry(delay=300, tries=5, logger=logger)
 def get_formation(technical_id, code_diplome):
     api_specific = ''
-    if code_diplome in ['BUT']:
+    if code_diplome in API_SPECIFIC.keys():
         api_specific = API_SPECIFIC[code_diplome]
     url = f'https://fresq.enseignementsup.gouv.fr/api/diplomes/{api_specific}/{technical_id}?stock=true'
     current_headers = get_headers()
     time.sleep(1)
-    logger.debug(url)
     r = requests.get(url, headers=current_headers).json()
     formation = r['data']
     parcours = formation.get('parcours_diplomants', [])
@@ -101,9 +101,9 @@ def get_formation(technical_id, code_diplome):
 
 @retry(delay=300, tries=5, logger=logger)
 def get_parcours(parcours_id, code_diplome):
-    api_specific = ''
-    if code_diplome in ['BUT']:
-        api_specific = API_SPECIFIC[code_diplome]
+    #api_specific = ''
+    #if code_diplome in API_SPECIFIC.keys():
+    #    api_specific = API_SPECIFIC[code_diplome]
     url = f'https://fresq.enseignementsup.gouv.fr/api/parcours-diplomants/{parcours_id}'
     current_headers = get_headers()
     time.sleep(1)
@@ -114,7 +114,7 @@ def get_parcours(parcours_id, code_diplome):
 @retry(delay=300, tries=5, logger=logger)
 def get_etapes_list(technical_id, code_diplome):
     api_specific = ''
-    if code_diplome in ['BUT']:
+    if code_diplome in API_SPECIFIC.keys():
         api_specific = API_SPECIFIC[code_diplome]
     url = f'https://fresq.enseignementsup.gouv.fr/api/diplomes/{api_specific}/{technical_id}/etapes?pageSize=100'
     current_headers = get_headers()
@@ -132,7 +132,7 @@ def get_full_data():
     logger.debug(f'{len(full_data)} elements retrieved for all codes')
     for d in full_data:
         code_diplome = d['data']['code_type_diplome'] 
-        if code_diplome in ['BUT']:
+        if code_diplome in API_SPECIFIC.keys():
             d['data']['formation_details'] = get_formation(d['recordId'], code_diplome)
     return full_data
 

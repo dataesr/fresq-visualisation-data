@@ -9,7 +9,7 @@ import jsonlines
 from project.server.main.utils import get_raw_data_filename, get_transformed_data_filename, to_jsonl, normalize, get_mentions_filename, get_etab_filename, get_df_fresq_raw, save_logs
 from project.server.main.paysage import enrich_with_paysage
 from project.server.main.monmaster import get_monmaster_elt
-from project.server.main.sise import get_years_in_sise, get_sise_elt
+from project.server.main.sise import get_years_in_sise, get_sise_elt, get_clean_sise_code_as_list
 from project.server.main.rncp import get_rncp_elt
 from project.server.main.rome import get_rome_elt
 from project.server.main.logger import get_logger
@@ -159,22 +159,37 @@ def enrich_fresq_elt(elt):
 
     #sise
     list_code_sise_fresq = []
-    if isinstance(elt.get('code_sise'), str):
-        list_code_sise_fresq = [str(elt['code_sise'])]
-    elif isinstance(elt.get('code_sise'), list):
-        list_code_sise_fresq = elt['code_sise']
-        for c in list_code_sise_fresq:
-            assert(isinstance(c, str))
+    raw_code_sise = []
+    invalid_code_sise = []
+    if elt.get('code_sise'):
+        list_code_sise_fresq += get_clean_sise_code_as_list(elt['code_sise'])
+        if isinstance(elt['code_sise'], str):
+            raw_code_sise += [elt['code_sise']]
+        elif isinstance(elt['code_sise'], list):
+            raw_code_sise += elt['code_sise']
     elif 'formation_details' in elt:
         if isinstance(elt['formation_details'].get('parcours_diplomants_full'), list):
             for parcours in elt['formation_details'].get('parcours_diplomants_full'):
                 if parcours.get('code_sise'):
-                    list_code_sise_fresq.append(str(parcours['code_sise']))
-        if list_code_sise_fresq:
-            logger.debug(f'code sise for {fresq_etab_id} : {list_code_sise_fresq}')
-    if len(list_code_sise_fresq) == 0:
-        assert(elt.get('code_sise') is None)
-        logger.debug(f"data_quality;fresq;no_codeSISE;{inf_id};{paysage_id_to_use}")
+                    if isinstance(parcours['code_sise'], str):
+                        raw_code_sise += [parcours['code_sise']]
+                    if isinstance(parcours['code_sise'], list):
+                        raw_code_sise += parcours['code_sise']
+                    list_code_sise_fresq += get_clean_sise_code_as_list(parcours['code_sise'])
+    if list_code_sise_fresq:
+        list_code_sise_fresq = list(set(list_code_sise_fresq))
+        elt['code_sise_valid'] = list_code_sise_fresq
+    if raw_code_sise:
+        raw_code_sise = list(set(raw_code_sise))
+        for raw_code in raw_code_sise:
+            if raw_code not in list_code_sise_fresq:
+                invalid_code_sise.append(raw_code)
+    if invalid_code_sise:
+        invalid_code_sise = list(set(invalid_code_sise))
+        elt['code_sise_invalid'] = invalid_code_sise
+        #logger.debug(f'code sise for {fresq_etab_id} : {list_code_sise_fresq}')
+    #if len(list_code_sise_fresq) == 0:
+        #logger.debug(f"data_quality;fresq;no_codeSISE;{inf_id};{paysage_id_to_use}")
     sise_infos = {}
     nb_has_sise_infos = 0
     elt['has_sise_infos_years'] = []
@@ -207,9 +222,9 @@ def enrich_fresq_elt(elt):
             if sise_infos[annee].get(f):
                 del sise_infos[annee][f]
     elt['sise_infos'] = sise_infos
-    if list_code_sise_fresq and (elt['nb_has_sise_infos'] == 0):
-        logger.debug(f'code SISE {list_code_sise_fresq} absent from SISE data')
-        logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{inf_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)}")
+    #if list_code_sise_fresq and (elt['nb_has_sise_infos'] == 0):
+    #    logger.debug(f'code SISE {list_code_sise_fresq} absent from SISE data')
+    #    logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{inf_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)}")
 
     num_rncps = []
     if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:
@@ -225,7 +240,7 @@ def enrich_fresq_elt(elt):
             logger.debug(f'code sise for {fresq_etab_id} : {num_rncps}')
     if len(num_rncps) == 0:
         assert(elt.get('num_rncp') is None)
-        logger.debug(f"data_quality;fresq;no_RNCP;{inf_id};{paysage_id_to_use}")
+        #logger.debug(f"data_quality;fresq;no_RNCP;{inf_id};{paysage_id_to_use}")
 
     # rncp
     rncp_infos = get_rncp_elt(num_rncps)
