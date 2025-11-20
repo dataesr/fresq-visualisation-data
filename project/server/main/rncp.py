@@ -41,7 +41,7 @@ def get_rncp():
     return df_rncp
 
 def get_rncp_elt(num_rncps):
-    ans = {'has_rncp_infos': False, 'rncp_infos': {}}
+    ans = {'avec_rncp_infos': False, 'rncp_infos': {}}
     if not isinstance(num_rncps, list):
         return ans
     global df_rncp
@@ -57,7 +57,7 @@ def get_rncp_elt(num_rncps):
                 if elt.get(f):
                     new_elt[f] = elt[f].strip()
             rncp_infos.append(new_elt)
-        return {'has_rncp_infos': True, 'rncp_infos': rncp_infos}
+        return {'avec_rncp_infos': True, 'rncp_infos': rncp_infos}
     return ans
 
 def parse_fiche_rncp(e):

@@ -48,4 +48,5 @@ def create_task_fresq(arg):
 
     if change_alias:
         dated_suffix = index_name.replace('fresq-', '')
-        update_all_aliases(dated_suffix, 'staging')
+        year = dated_suffix[0:4]
+        update_all_aliases(dated_suffix, f'{year}-staging')

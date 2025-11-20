@@ -23,6 +23,64 @@ raw_data_suffix = 'latest'
 df_fresq_raw = None
 fresq_enriched = None
 
+def group_by_inf(raw_data):
+    logger.debug(f'raw fresq_data len = {len(raw_data)}')
+    inf_dict = {}
+    for e in raw_data:
+        d = e['data']
+        for f in ['recordId', 'collectionId', 'bucketId']:
+            if e.get(f):
+                d[f] = e.get(f)
+        current_inf = d['inf']
+        if current_inf not in inf_dict:
+            inf_dict[current_inf] = {}
+        if 'uai_etablissement' in d:
+            uai = d.get('uai_etablissement')
+        else:
+            nb_elts = len(inf_dict[current_inf])
+            uai = f'uai_absent_{nb_elts}'
+            #logger.debug(f'pas de UAI pour inf {current_inf} - {uai}')
+        inf_dict[current_inf][uai] = d
+    inf_data = []
+    for inf in inf_dict:
+        inf_data.append(merge(inf, inf_dict[inf]))
+    logger.debug(f'after INF group by fresq_data len = {len(inf_data)}')
+    return inf_data
+
+def merge(inf, list_elts):
+    assert(len(list_elts)>0)
+    ans = {'inf': inf}
+    etablissements = []
+    first_uai = list(list_elts.keys())[0]
+    for uai in list_elts:
+        for f in ['inf', 'categorie_type_diplome', 'libelle_type_diplome', 'intitule_officiel', 'mention_normalized', 'mention_normalized', 'mention_id', 'cycle',
+            'code_sise_valid', 'code_sise_found', 'nb_code_sise_found', 'code_sise_invalid', 'code_sise', 'code_type_diplome', 'ordre_type_diplome',
+            'date_debut_accreditation_min', 'date_fin_accreditation_max', 'domaines', 'identifiant_source',
+            'recordId', 'collectionId', 'bucketId',
+            'num_rncp', 'formation_details', 'sigle_sante', 'sigle_specialite_but', 'nom_specialite_but', 'specialite_sante', 'specialites', 'specialites_cti',
+            'type_parcours_but']:
+            if f in list_elts[uai]:
+                try:
+                    assert(list_elts[uai][f] == list_elts[first_uai][f])
+                except:
+                    logger.debug(f'assertion error for {uai} {f} as {list_elts[uai][f]} DIFFERENT FROM {list_elts[first_uai][f]}')
+                ans[f] = list_elts[first_uai][f]
+        current_etab = {}
+        for f in list_elts[uai].keys():
+            for g in ['vague', 'type_delivrance', 'etabli', 'academi', 'tutelle', 'secteur', 'geoloc']:
+                if g in f:
+                    current_etab[f] = list_elts[uai][f]
+            if f == 'geolocalisations': # for dedup
+                new_geoloc = []
+                for geoloc in current_etab[f]:
+                    if geoloc not in new_geoloc:
+                        new_geoloc.append(geoloc)
+                current_etab[f] = new_geoloc
+        etablissements.append(current_etab)
+    ans['etablissements'] = etablissements
+    ans['nb_etablissements'] = len(etablissements)
+    return ans
+
 def transform_raw_data(raw_data_suffix='latest'):
     global fresq_enriched
     logger.debug('>>>>>>>>>> TRANSFORM >>>>>>>>>>')
@@ -30,14 +88,8 @@ def transform_raw_data(raw_data_suffix='latest'):
     global df_fresq_raw
     if df_fresq_raw is None:
         df_fresq_raw = get_df_fresq_raw(raw_data_suffix)
-    fresq_data = []
-    for e in df_fresq_raw.to_dict(orient='records'):
-        new_elt = {}
-        new_elt = e['data']
-        for f in ['recordId', 'collectionId', 'bucketId']:
-            if e.get(f):
-                new_elt[f] = e.get(f)
-        fresq_data.append(new_elt)
+    raw_data = df_fresq_raw.to_dict(orient='records')
+    fresq_data = group_by_inf(raw_data)
     fresq_data_with_paysage = [enrich_with_paysage(fresq_elt) for fresq_elt in fresq_data]
     fresq_enriched = []
     for ix, e in enumerate(fresq_data_with_paysage):
@@ -51,6 +103,7 @@ def transform_raw_data(raw_data_suffix='latest'):
     upload_object('fresq', transformed_data_filename, transformed_data_filename)
     save_logs()
     #return fresq_enriched
+
 
 def get_transformed_data(raw_data_suffix='latest'):
     transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
@@ -119,15 +172,7 @@ def enrich_fresq_elt(elt):
     assert(isinstance(inf_id, str))
     if(len(inf_id)<5):
         logger.debug(f"data_quality;fresq;ill_formed_inf;{inf_id}")
-    uai_fresq = elt.get('uai_etablissement', '')
     paysage_id_to_use = elt.get('paysage_id_to_use', '')
-    if len(uai_fresq)<5:
-        logger.debug(f"data_quality;fresq;ill_formed_uai;{inf_id};{uai_fresq}")
-    if not isinstance(paysage_id_to_use, str) or len(paysage_id_to_use)<2:
-        logger.debug(f"data_quality;fresq;no_paysage_id_found;{inf_id};{uai_fresq}")
-    # real PID is inf x UAI
-    fresq_etab_id = f'{inf_id}_{paysage_id_to_use}'
-    elt['fresq_etab_id'] = fresq_etab_id
     # mention
     mention_fresq = normalize(elt.get('intitule_officiel'), remove_space=False)
     mention_fresq = mention_fresq.replace('2nd degre', '2e degre')
@@ -138,24 +183,24 @@ def enrich_fresq_elt(elt):
     elt['cycle'] = get_cycle(elt['categorie_type_diplome'], elt['libelle_type_diplome'])
     # geoloc infos - only sanity check
     # geoloc for main etab comes from paysage
-    geolocalisations = []
-    if 'geolocalisations' in elt and isinstance(elt['geolocalisations'], list):
-        geolocalisations = elt['geolocalisations']
-    for geolocalisation in geolocalisations:
-        if isinstance(geolocalisation, dict) and geolocalisation.get('site_geolocalisation', {}).get('coordinates'):
-            geoloc_s = geolocalisation['site_geolocalisation']['coordinates'].replace('"', '').split(',')
-            if (len(geoloc_s) == 2) and ('[' in geoloc_s[0]) and (']' in geoloc_s[1]):
-                longitude = float(geoloc_s[0].replace('[', ''))
-                latitude = float(geoloc_s[1].replace(']', ''))
-            else:
-                logger.debug(f"data_quality;fresq;geoloc_ill_formed;{inf_id};{uai_fresq};{geoloc_s}")
+    #geolocalisations = []
+    #if 'geolocalisations' in elt and isinstance(elt['geolocalisations'], list):
+    #    geolocalisations = elt['geolocalisations']
+    #for geolocalisation in geolocalisations:
+    #    if isinstance(geolocalisation, dict) and geolocalisation.get('site_geolocalisation', {}).get('coordinates'):
+    #        geoloc_s = geolocalisation['site_geolocalisation']['coordinates'].replace('"', '').split(',')
+    #        if (len(geoloc_s) == 2) and ('[' in geoloc_s[0]) and (']' in geoloc_s[1]):
+    #            longitude = float(geoloc_s[0].replace('[', ''))
+    #            latitude = float(geoloc_s[1].replace(']', ''))
+    #        else:
+    #            logger.debug(f"data_quality;fresq;geoloc_ill_formed;{inf_id};{uai_fresq};{geoloc_s}")
     #monmaster
-    monmaster_infos = get_monmaster_elt(inf_id, uai_fresq) # todo ? use paysage ?
-    elt.update(monmaster_infos)
+    #monmaster_infos = get_monmaster_elt(inf_id, uai_fresq) # todo ? use paysage ?
+    #elt.update(monmaster_infos)
     
     #entity fishing
-    ef_infos = get_entityfishing()
-    elt.update(ef_infos)
+    #ef_infos = get_entityfishing()
+    #elt.update(ef_infos)
 
     #sise
     list_code_sise_fresq = []
@@ -190,41 +235,9 @@ def enrich_fresq_elt(elt):
         #logger.debug(f'code sise for {fresq_etab_id} : {list_code_sise_fresq}')
     #if len(list_code_sise_fresq) == 0:
         #logger.debug(f"data_quality;fresq;no_codeSISE;{inf_id};{paysage_id_to_use}")
-    sise_infos = {}
-    nb_has_sise_infos = 0
-    elt['has_sise_infos_years'] = []
-    annees = get_years_in_sise()
-    for annee in annees:
-        #uai_to_use = uai_fresq # TODO better with previous UAIs
-        sise_infos[annee] = get_sise_elt(paysage_id_to_use, list_code_sise_fresq, annee, inf_id)
-        if sise_infos[annee].get('has_sise_infos'):
-            nb_has_sise_infos += 1
-            elt['has_sise_infos_years'].append(annee)
-        for f in ['code_sise_found', 'sise_discipline', 'sise_secteur_disciplinaire', 'sise_grande_discipline']:
-            if sise_infos[annee].get(f):
-                elt[f] = sise_infos[annee][f]
-        if annee == annees[-1]:
-            for f in ['sise_matching']:
-                if sise_infos[annee].get(f):
-                    elt[f] = sise_infos[annee][f]
-            elt['has_sise_infos_last'] = sise_infos[annee]['has_sise_infos']
-        elt['nb_has_sise_infos'] = nb_has_sise_infos
-        # simplify data - remove some fields
-        for k in sise_infos[annee]['sise_infos']:
-            for f in ['grande_discipline_code', 'grande_discipline', 
-                  'secteur_disciplinaire_code', 'secteur_disciplinaire',
-                 'discipline_code', 'discipline', 'annee_universitaire']:
-                if k.get(f):
-                    del k[f]
-            if k.get('implantation_code_commune'):
-                k['implantation_code_commune'] = str(k['implantation_code_commune'])
-        for f in ['sise_discipline', 'sise_grande_discipline', 'sise_secteur_disciplinaire']:
-            if sise_infos[annee].get(f):
-                del sise_infos[annee][f]
-    elt['sise_infos'] = sise_infos
-    #if list_code_sise_fresq and (elt['nb_has_sise_infos'] == 0):
-    #    logger.debug(f'code SISE {list_code_sise_fresq} absent from SISE data')
-    #    logger.debug(f"data_quality;sise;codeSISE_absent_from_SISE_data;{inf_id};{paysage_id_to_use};{'-'.join(list_code_sise_fresq)}")
+    #sise_infos = {}
+    #nb_has_sise_infos = 0
+    #elt['has_sise_infos_years'] = []
 
     num_rncps = []
     if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:
@@ -236,8 +249,6 @@ def enrich_fresq_elt(elt):
             for parcours in elt['formation_details'].get('parcours_diplomants_full'):
                 if parcours.get('num_rncp'):
                     num_rncps.append(str(parcours['num_rncp']))
-        if num_rncps:
-            logger.debug(f'code sise for {fresq_etab_id} : {num_rncps}')
     if len(num_rncps) == 0:
         assert(elt.get('num_rncp') is None)
         #logger.debug(f"data_quality;fresq;no_RNCP;{inf_id};{paysage_id_to_use}")

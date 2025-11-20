@@ -26,6 +26,8 @@ API_SPECIFIC = {}
 API_SPECIFIC['BUT'] = 'diplome_but'
 API_SPECIFIC['M'] = 'diplome_master'
 
+cache_etape, cache_formation = {}, {}
+
 @retry(delay=300, tries=3, logger=logger)
 def get_headers():
     r = requests.post(FRESQ_AUTHENT_URL, data={
@@ -78,6 +80,11 @@ def get_data(code_diplome):
 
 @retry(delay=300, tries=5, logger=logger)
 def get_formation(technical_id, code_diplome):
+    global cache_formation
+    cache_key = f'{code_diplome}_{technical_id}'
+    if cache_key in cache_formation:
+        logger.debug(f'using cache formation for {cache_key}')
+        return cache_formation[cache_key]
     api_specific = ''
     if code_diplome in API_SPECIFIC.keys():
         api_specific = API_SPECIFIC[code_diplome]
@@ -97,6 +104,7 @@ def get_formation(technical_id, code_diplome):
     # pour les étapes, un seul appel pour avoir la liste
     if isinstance(formation.get('etapes'), list) and len(formation['etapes'])>0:
         formation['etapes_details'] = get_etapes_list(technical_id, code_diplome)
+    cache_formation[cache_key] = formation
     return formation
 
 @retry(delay=300, tries=5, logger=logger)
@@ -113,6 +121,11 @@ def get_parcours(parcours_id, code_diplome):
 
 @retry(delay=300, tries=5, logger=logger)
 def get_etapes_list(technical_id, code_diplome):
+    global cache_etape
+    cache_key = f'{code_diplome}_{technical_id}'
+    if cache_key in cache_etape:
+        logger.debug(f'using cache etape for {cache_key}')
+        return cache_etape[cache_key]
     api_specific = ''
     if code_diplome in API_SPECIFIC.keys():
         api_specific = API_SPECIFIC[code_diplome]
@@ -121,6 +134,7 @@ def get_etapes_list(technical_id, code_diplome):
     time.sleep(1)
     r = requests.get(url, headers=current_headers).json()
     ans = [e['data'] for e in r]
+    cache_etape[cache_key] = ans
     return ans
 
 def get_full_data():

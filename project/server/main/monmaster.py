@@ -61,4 +61,4 @@ def get_monmaster_elt(inf, uai):
         if current_elt:
             current_elt['inm'] = inf
             ans['masters'].append(current_elt)
-    return {'monmaster_infos': ans, 'has_monmaster_infos': has_monmaster_infos}
+    return {'monmaster_infos': ans, 'avec_monmaster_infos': has_monmaster_infos}

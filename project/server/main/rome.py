@@ -106,7 +106,7 @@ def get_metiers(rncp2rome):
     upload_object('fresq', current_file, current_file)
 
 def get_rome_elt(num_rncps):
-    ans = {'has_rome_infos': False, 'rome_infos': {}}
+    ans = {'avec_rome_infos': False, 'rome_infos': {}}
     if not isinstance(num_rncps, list):
         return ans
     global rncp2rome
@@ -117,5 +117,5 @@ def get_rome_elt(num_rncps):
         if num_rncp in rncp2rome:
             rome_infos += rncp2rome[num_rncp]
     if rome_infos:
-        ans = {'has_rome_infos': True, 'rome_infos': rome_infos}
+        ans = {'avec_rome_infos': True, 'rome_infos': rome_infos}
     return ans

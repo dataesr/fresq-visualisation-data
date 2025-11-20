@@ -1,8 +1,9 @@
 import requests
-import retry
+from retry import retry
 import os
 import pickle
 import pandas as pd
+import copy
 from project.server.main.utils import get_df_fresq_raw, get_etab_filename, to_jsonl, save_logs
 from project.server.main.utils_swift import upload_object, download_object
 from project.server.main.logger import get_logger
@@ -23,15 +24,18 @@ def enrich_with_paysage(elt):
     if len(final_uai_paysage_correspondance)==0:
         download_object('fresq', 'final_uai_paysage_correspondance.pkl', 'final_uai_paysage_correspondance.pkl')
         final_uai_paysage_correspondance = pickle.load(open('final_uai_paysage_correspondance.pkl', 'rb'))
-    uai = elt.get('uai_etablissement')
-    if not isinstance(uai, str):
-        logger.debug(f"data_quality;paysage;noUAI;{elt['inf']}")
-        return elt
-    if uai not in final_uai_paysage_correspondance:
-        logger.debug(f'{uai} not in final_uai_paysage_correspondance ??')
-        return elt
-    paysage_infos = final_uai_paysage_correspondance[uai]
-    elt.update(paysage_infos)
+    for ix, etab in enumerate(elt.get('etablissements')):
+        uai = etab.get('uai_etablissement')
+        if not isinstance(uai, str):
+            logger.debug(f"data_quality;paysage;noUAI;{elt['inf']}")
+            continue
+        if uai not in final_uai_paysage_correspondance:
+            logger.debug(f'{uai} not in final_uai_paysage_correspondance ??')
+            continue
+        paysage_infos = final_uai_paysage_correspondance[uai]
+        new_etab = copy.deepcopy(etab)
+        new_etab.update(paysage_infos)
+        elt['etablissements'][ix] = new_etab
     return elt
 
 def get_etabs(raw_data_suffix):
@@ -131,7 +135,7 @@ def get_geoloc_infos(paysage_elt):
         new['geoloc'] = geoloc
     return new
 
-#@retry.retry(tries=5, delay=4)
+@retry(delay=300, tries=3, logger=logger)
 def get_paysage(paysage_id):
     #print(paysage_id)
     url=f'{PAYSAGE_URL}/autocomplete?query={paysage_id}&limit=50&types=structures'
@@ -139,7 +143,7 @@ def get_paysage(paysage_id):
     assert (len(response['data'])==1)
     return response['data'][0]
 
-#@retry.retry(tries=5, delay=4)
+@retry(delay=300, tries=3, logger=logger)
 def get_paysage_search(uai):
     global paysage_uai_map
     if uai in paysage_uai_map:
@@ -170,6 +174,7 @@ def get_paysage_search(uai):
     paysage_uai_map[uai] = ans
     return ans
 
+@retry(delay=300, tries=3, logger=logger)
 def get_paysage_parents(paysage_id):
     url = f"{PAYSAGE_URL}/relations?filters[relationTag]=structure-interne&filters[relatedObjectId]={paysage_id}"
     response_data = requests.get(url, headers=headers).json()['data']
@@ -183,6 +188,7 @@ def get_paysage_parents(paysage_id):
     parents = [get_paysage(k['resourceId']) for k in actives]
     return parents
 
+@retry(delay=300, tries=3, logger=logger)
 def get_paysage_successeurs(paysage_id):
     url = f"{PAYSAGE_URL}/relations?filters[relationTag]=structure-predecesseur&filters[relatedObjectId]={paysage_id}&sort=-startDate"
     response_data = requests.get(url, headers=headers).json()['data']
