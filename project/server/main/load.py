@@ -62,7 +62,7 @@ def load_fresq(raw_data_suffix, index_name):
     mappings_fresq = get_mappings_fresq()
     reset_index(index=index_name, mappings = mappings_fresq)
     es_host = get_es_host()
-    elasticimport = f"elasticdump --input={transformed_data_filename} --output={es_host}{index_name} --type=data --limit 1000 --noRefresh " + "--transform='doc._source=Object.assign({},doc)'"
+    elasticimport = f"elasticdump --input={transformed_data_filename} --output={es_host}{index_name} --type=data --limit 100 --noRefresh " + "--transform='doc._source=Object.assign({},doc)'"
     os.system(elasticimport)
     refresh_index(index_name)
     save_logs()

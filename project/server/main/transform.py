@@ -51,14 +51,16 @@ def merge(inf, list_elts):
     assert(len(list_elts)>0)
     ans = {'inf': inf}
     etablissements = []
+    uais_etablissements = []
     first_uai = list(list_elts.keys())[0]
     for uai in list_elts:
+        uais_etablissements.append(uai)
         for f in ['inf', 'categorie_type_diplome', 'libelle_type_diplome', 'intitule_officiel', 'mention_normalized', 'mention_normalized', 'mention_id', 'cycle',
             'code_sise_valid', 'code_sise_found', 'nb_code_sise_found', 'code_sise_invalid', 'code_sise', 'code_type_diplome', 'ordre_type_diplome',
             'date_debut_accreditation_min', 'date_fin_accreditation_max', 'domaines', 'identifiant_source',
             'recordId', 'collectionId', 'bucketId',
             'num_rncp', 'formation_details', 'sigle_sante', 'sigle_specialite_but', 'nom_specialite_but', 'specialite_sante', 'specialites', 'specialites_cti',
-            'type_parcours_but']:
+            'type_parcours_but', 'secteur_disciplinaire_sise']:
             if f in list_elts[uai]:
                 try:
                     assert(list_elts[uai][f] == list_elts[first_uai][f])
@@ -67,8 +69,13 @@ def merge(inf, list_elts):
                 ans[f] = list_elts[first_uai][f]
         current_etab = {}
         for f in list_elts[uai].keys():
-            for g in ['vague', 'type_delivrance', 'etabli', 'academi', 'tutelle', 'secteur', 'geoloc']:
+            # champs qui contiennent ...
+            for g in ['vague', 'type_delivrance', 'etabli', 'academi', 'tutelle', 'geoloc']:
                 if g in f:
+                    current_etab[f] = list_elts[uai][f]
+            # champs qui vaut exactement ...
+            for g in ['secteur']:
+                if g == f:
                     current_etab[f] = list_elts[uai][f]
             if f == 'geolocalisations': # for dedup
                 new_geoloc = []
@@ -79,6 +86,7 @@ def merge(inf, list_elts):
         etablissements.append(current_etab)
     ans['etablissements'] = etablissements
     ans['nb_etablissements'] = len(etablissements)
+    ans['uais_etablissements'] = uais_etablissements
     return ans
 
 def transform_raw_data(raw_data_suffix='latest'):
@@ -238,6 +246,9 @@ def enrich_fresq_elt(elt):
     #sise_infos = {}
     #nb_has_sise_infos = 0
     #elt['has_sise_infos_years'] = []
+
+    sise_infos = get_sise_elt(uais = elt['uais_etablissements'], inf = elt['inf'], annee = 'all')
+    elt.update(sise_infos)
 
     num_rncps = []
     if isinstance(elt.get('num_rncp'), str) and 'RNCP' in elt['num_rncp']:

@@ -35,6 +35,7 @@ def get_sise():
     annees.sort()
     years_in_sise = annees
     df_sise_dict = {}
+    df_sise_dict['all'] = df_sise
     for a in annees:
         df_sise_dict[a] = df_sise[df_sise['annee_universitaire']==a]
     return df_sise_dict, years_in_sise
@@ -47,21 +48,23 @@ def get_years_in_sise():
 
 
 #def get_sise_elt(uai_fresq, sise_fresq, annee, fresq_id):
-def get_sise_elt(uai_fresq, inf, annee):
+def get_sise_elt(uais, inf, annee):
     
     empty_ans = {'avec_sise_infos': False}
     
-    if uai_fresq is None:
+    if (uais is None) or len(uais)==0:
         empty_ans['sise_matching'] = 'no_uai'
         return empty_ans
 
     global df_sise_dict, years_in_sise
     if df_sise_dict is None:
         df_sise_dict, years_in_sise = get_sise()
-    df_sise_annee = df_sise_dict[annee]
 
-    set_code_sise_fresq = set(list_code_sise_fresq)
-    df_sise_filtered = df_sise_annee[(df_sise_annee.uai_fresq == uai_fresq) & (df_sise_annee.inf==inf)]
+    df_sise_annee = df_sise_dict[annee]
+    
+    filter_uai = df_sise_annee.uai_fresq.isin(uais)
+    filter_inf = (df_sise_annee.inf == inf)
+    df_sise_filtered = df_sise_annee[filter_uai & filter_inf]
     if len(df_sise_filtered) == 0:
         return empty_ans
 
