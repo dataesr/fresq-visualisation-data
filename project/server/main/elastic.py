@@ -98,12 +98,11 @@ def get_mappings_fresq():
               'libelle_formation_2', 'mention_normalized', 
               'nom_etablissement',
               'rncp_infos.type_emploi_accessibles',
-              'rome_infos.level_1', 'rome_infos.level_2', 'rome_infos.level_3', 'rome_infos.label', 
-              'secteur_disciplinaire_sise', 'discipline_lib','disciplines_selection'
-              # 'entityfishing_infos.entities.domains',
-              # 'monmaster_infos.listSpecialityCourse', 'monmaster_infos.keyWords',
-             # 'monmaster_infos.courses.expectedSkills', 'monmaster_infos.courses.keyWords', 
-             # 'monmaster_infos.courses.criteres'
+              'rome_infos.level_1', 'rome_infos.level_2', 'rome_infos.level_3', 'rome_infos.label',
+              'gd_disciscipline_lib',  'discipline_lib', 'sect_disciplinaire_lib', 'disciplines_selection',
+              'etablissements.libelle_etablissement', 'etablissements.nom_etablissement',
+              'etablissements.denomination_etablissement', 'etablissements.nom_bce_etablissement', 'etablissements.paysage_name',
+              'formation_details.intitule_officiel', 'formation_details.parcours_diplomants_full.intitule'
              ]:
         mappings['properties'][f] = {
                 'type': 'text',

@@ -73,7 +73,7 @@ def get_sise_elt(uais, inf, annee):
     if len(df_sise_final) == 0:
         return empty_ans
     ans = {'avec_sise_infos': True}
-    for k in ['discipline_lib', 'disciplines_selection']:
+    for k in ['gd_disciscipline_lib',  'discipline_lib', 'sect_disciplinaire_lib', 'disciplines_selection']:
         df_test = df_sise_final[k].value_counts()
         values = df_test.index.to_list()
         ans[k] = values
