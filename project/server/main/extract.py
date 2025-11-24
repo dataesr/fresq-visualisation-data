@@ -26,23 +26,31 @@ API_SPECIFIC = {}
 API_SPECIFIC['BUT'] = 'diplome_but'
 API_SPECIFIC['M'] = 'diplome_master'
 
-cache_etape, cache_formation = {}, {}
+cache_etape, cache_formation, cache_parcours, cache_etape_list = {}, {}, {}, {}
 
-@retry(delay=300, tries=3, logger=logger)
+@retry(delay=60, tries=3, logger=logger)
 def get_headers():
     r = requests.post(FRESQ_AUTHENT_URL, data={
         'grant_type': 'password',
         'scope': 'openid',
         'username': FRESQ_LOGIN,
         'password': FRESQ_PASSWORD}, auth=('client-fresq', ''))
-    tokens = r.json()
-    key = tokens['access_token']
+    try:
+        tokens = r.json()
+        key = tokens['access_token']
+    except:
+        logger.debug('error in get_headers')
+        logger.debug(r.text)
+        tokens = r.json()
+        key = tokens['access_token']
     headers= {'Authorization': f'Bearer {key}'}
+    time.sleep(1)
     return headers
 
 @retry(delay=300, tries=5, logger=logger)
 def get_code_diplomes():
-    type_diplomes = requests.get(URL_DIPLOMES, headers=get_headers()).json()['datas']
+    current_headers = get_headers()
+    type_diplomes = requests.get(URL_DIPLOMES, headers=current_headers).json()['datas']
     code_diplomes = [t['data']['code'] for t in type_diplomes]
     return code_diplomes
 
@@ -86,11 +94,11 @@ def get_formation(technical_id, code_diplome):
         logger.debug(f'using cache formation for {cache_key}')
         return cache_formation[cache_key]
     api_specific = ''
-    if code_diplome in API_SPECIFIC.keys():
-        api_specific = API_SPECIFIC[code_diplome]
+    assert(code_diplome in API_SPECIFIC)
+    api_specific = API_SPECIFIC[code_diplome]
     url = f'https://fresq.enseignementsup.gouv.fr/api/diplomes/{api_specific}/{technical_id}?stock=true'
+    logger.debug(f'---- getting formation {url} --- ')
     current_headers = get_headers()
-    time.sleep(1)
     r = requests.get(url, headers=current_headers).json()
     formation = r['data']
     parcours = formation.get('parcours_diplomants', [])
@@ -98,34 +106,63 @@ def get_formation(technical_id, code_diplome):
     # pour les parcours, malheureusement, un appel par parcours pour avoir le code sise
     if isinstance(parcours, list):
         for p in parcours:
-            p_complet = get_parcours(p, code_diplome)
+            p_complet = get_parcours(p, code_diplome, current_headers)
             parcours_full.append(p_complet)
     formation['parcours_diplomants_full'] = parcours_full
-    # pour les étapes, un seul appel pour avoir la liste
-    if isinstance(formation.get('etapes'), list) and len(formation['etapes'])>0:
-        formation['etapes_details'] = get_etapes_list(technical_id, code_diplome)
+    logger.debug(f'{len(parcours_full)} parcours have been retrieved')
+    etapes = formation.get('etapes')
+    etapes_full = []
+    if isinstance(etapes, list) and len(etapes)>0:
+        #formation['etapes_details'] = get_etapes_list(technical_id, code_diplome)
+        for e in etapes:
+            e_complet = get_etape(e, code_diplome, current_headers)
+            etapes_full.append(e_complet)
+    formation['etapes_details'] = etapes_full
+    logger.debug(f'{len(etapes_details)} etapes have been retrieved')
     cache_formation[cache_key] = formation
     return formation
 
 @retry(delay=300, tries=5, logger=logger)
-def get_parcours(parcours_id, code_diplome):
-    #api_specific = ''
-    #if code_diplome in API_SPECIFIC.keys():
-    #    api_specific = API_SPECIFIC[code_diplome]
+def get_parcours(parcours_id, code_diplome, current_headers):
+    global cache_parcours
+    cache_key = f'{code_diplome}_{parcours_id}'
+    if cache_key in cache_parcours:
+        logger.debug(f'using cache parcours for {cache_key}')
+        return cache_parcours[cache_key]
     url = f'https://fresq.enseignementsup.gouv.fr/api/parcours-diplomants/{parcours_id}'
-    current_headers = get_headers()
-    time.sleep(1)
+    #current_headers = get_headers()
+    #time.sleep(1)
     r = requests.get(url, headers=current_headers).json()
     ans = r['data']
+    cache_parcours[cache_key] = ans
     return ans
 
 @retry(delay=300, tries=5, logger=logger)
-def get_etapes_list(technical_id, code_diplome):
+def get_etape(etape_id, code_diplome, current_headers):
     global cache_etape
-    cache_key = f'{code_diplome}_{technical_id}'
+    cache_key = f'{code_diplome}_{etape_id}'
     if cache_key in cache_etape:
         logger.debug(f'using cache etape for {cache_key}')
         return cache_etape[cache_key]
+    url = f'https://fresq.enseignementsup.gouv.fr/api/etapes/{etape_id}'
+    #current_headers = get_headers()
+    #time.sleep(1)
+    r = requests.get(url, headers=current_headers).json()
+    ans = r['data']
+    url2 = f'https://fresq.enseignementsup.gouv.fr/api/etapes/{etape_id}/references'
+    r2 = requests.get(url2, headers=current_headers).json()
+    ans['references'] = r2
+    cache_etape[cache_key] = ans
+    return ans
+
+# unused, we need all the details, etape by etape
+@retry(delay=300, tries=5, logger=logger)
+def get_etapes_list(technical_id, code_diplome):
+    global cache_etape_list
+    cache_key = f'{code_diplome}_{technical_id}'
+    if cache_key in cache_etape_list:
+        logger.debug(f'using cache etape list for {cache_key}')
+        return cache_etape_list[cache_key]
     api_specific = ''
     if code_diplome in API_SPECIFIC.keys():
         api_specific = API_SPECIFIC[code_diplome]
@@ -134,7 +171,7 @@ def get_etapes_list(technical_id, code_diplome):
     time.sleep(1)
     r = requests.get(url, headers=current_headers).json()
     ans = [e['data'] for e in r]
-    cache_etape[cache_key] = ans
+    cache_etape_list[cache_key] = ans
     return ans
 
 def get_full_data():
@@ -144,9 +181,11 @@ def get_full_data():
         new_data = get_data(c)
         full_data += new_data
     logger.debug(f'{len(full_data)} elements retrieved for all codes')
-    for d in full_data:
-        code_diplome = d['data']['code_type_diplome'] 
-        if code_diplome in API_SPECIFIC.keys():
+    for idx, d in enumerate(full_data):
+        code_diplome = d['data']['code_type_diplome']
+        if idx % 250 == 0:
+            logger.debug(f'{idx} / {len(full_data)} completed')
+        if code_diplome in API_SPECIFIC:
             d['data']['formation_details'] = get_formation(d['recordId'], code_diplome)
     return full_data
 

@@ -94,23 +94,21 @@ def get_etabs(raw_data_suffix):
         uai_to_paysage_method = 'no'
         if len(paysage_elt) == 1:
             paysage_id = paysage_elt[0]['id']
-            geoloc = get_geoloc_infos(paysage_elt[0])
-            d.update(geoloc)
             paysage_id_to_use = paysage_id
-            uai_to_paysage_method = 'direct'
+            paysage = get_paysage_infos(paysage_elt[0])
+            d['paysage_elt'] = paysage
+            d['paysage_elt_to_use'] = paysage
+            d['paysage_elt_to_use']['uai_to_paysage_method'] = 'direct'
         if parent_elt:
             paysage_id_to_use = parent_elt[0]['id']
-            geoloc = get_geoloc_infos(parent_elt[0])
-            d.update(geoloc)
-            uai_to_paysage_method = 'parent'
+            paysage = get_paysage_infos(parent_elt[0])
+            d['paysage_elt_to_use'] = paysage
+            d['paysage_elt_to_use']['uai_to_paysage_method'] = 'parent'
         if paysage_id_to_use is None and successeur_elt:
             paysage_id_to_use = successeur_elt[0]['id']
-            uai_to_paysage_method = 'successeur'
-            geoloc = get_geoloc_infos(successeur_elt[0])
-            d.update(geoloc)
-        d['paysage_id'] = paysage_id
-        d['paysage_id_to_use'] = paysage_id_to_use
-        d['uai_to_paysage_method'] = uai_to_paysage_method
+            paysage = get_paysage_infos(successeur_elt[0])
+            d['paysage_elt_to_use'] = paysage
+            d['paysage_elt_to_use']['uai_to_paysage_method'] = 'successeur'
         final_uai_paysage_correspondance[uai] = d
         new_data.append(d)
     df_new = pd.DataFrame(new_data).drop_duplicates()
@@ -123,11 +121,12 @@ def get_etabs(raw_data_suffix):
     upload_object('fresq', 'final_uai_paysage_correspondance.pkl', 'final_uai_paysage_correspondance.pkl')
     save_logs()
 
-def get_geoloc_infos(paysage_elt):
+def get_paysage_infos(paysage_elt):
     new = {}
     geoloc = None
+    new['id'] = paysage_elt['id']
     name = paysage_elt['name']
-    new['paysage_name'] = name
+    new['name'] = name
     if isinstance(paysage_elt.get('coordinates'), list):
         lat = paysage_elt['coordinates'][1]
         lon = paysage_elt['coordinates'][0]
