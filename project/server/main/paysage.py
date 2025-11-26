@@ -49,8 +49,9 @@ def get_etabs(raw_data_suffix):
         for f in d:
             if '_etablissement' in f and isinstance(d[f], str):
                 etab_elt[f] = d[f]
-        data_etab.append(etab_elt)
-    df_etabs = pd.DataFrame(data_etab).drop_duplicates()
+        if etab_elt not in data_etab:
+            data_etab.append(etab_elt)
+    df_etabs = pd.DataFrame(data_etab)
     uais = list(set(df_etabs.uai_etablissement.to_list()))
     if(len(uais) != len(df_etabs)):
         logger.debug(f'WARNING !! nb_uai = {len(uais)} vs nb_etabs = {len(df_etabs)}')
@@ -110,8 +111,9 @@ def get_etabs(raw_data_suffix):
             d['paysage_elt_to_use'] = paysage
             d['paysage_elt_to_use']['uai_to_paysage_method'] = 'successeur'
         final_uai_paysage_correspondance[uai] = d
-        new_data.append(d)
-    df_new = pd.DataFrame(new_data).drop_duplicates()
+        if d not in new_data:
+            new_data.append(d)
+    df_new = pd.DataFrame(new_data)
     current_file = get_etab_filename(raw_data_suffix)
     logger.debug(f'{len(new_data)} rows for etabs')
     os.system(f'rm -rf {current_file}')

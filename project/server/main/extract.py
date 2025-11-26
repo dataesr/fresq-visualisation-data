@@ -118,7 +118,7 @@ def get_formation(technical_id, code_diplome):
             e_complet = get_etape(e, code_diplome, current_headers)
             etapes_full.append(e_complet)
     formation['etapes_details'] = etapes_full
-    logger.debug(f'{len(etapes_details)} etapes have been retrieved')
+    logger.debug(f'{len(etapes_full)} etapes have been retrieved')
     cache_formation[cache_key] = formation
     return formation
 
