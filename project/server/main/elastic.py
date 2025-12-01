@@ -102,7 +102,10 @@ def get_mappings_fresq():
               'gd_disciscipline_lib',  'discipline_lib', 'sect_disciplinaire_lib', 'disciplines_selection',
               'etablissements.libelle_etablissement', 'etablissements.nom_etablissement',
               'etablissements.denomination_etablissement', 'etablissements.nom_bce_etablissement', 'etablissements.paysage_name',
-              'formation_details.intitule_officiel', 'formation_details.parcours_diplomants_full.intitule'
+              'formation_details.intitule_officiel', 'formation_details.parcours_diplomants_full.intitule',
+              'formation_details.etapes_details.informations_pedagogiques.mot_cle_disciplinaire_details.nom',
+              'formation_details.etapes_details.informations_pedagogiques.mot_cle_metier_details.nom',
+              'formation_details.etapes_details.informations_pedagogiques.mot_cle_libre'
              ]:
         mappings['properties'][f] = {
                 'type': 'text',

@@ -15,6 +15,7 @@ from project.server.main.rome import get_rome_elt
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object, download_object
 from project.server.main.ef import get_entityfishing 
+from project.server.main.etapes import clean_etapes
 
 logger = get_logger(__name__)
 
@@ -26,11 +27,7 @@ fresq_enriched = None
 def group_by_inf(raw_data):
     logger.debug(f'raw fresq_data len = {len(raw_data)}')
     inf_dict = {}
-    for e in raw_data:
-        d = e['data']
-        for f in ['recordId', 'collectionId', 'bucketId']:
-            if e.get(f):
-                d[f] = e.get(f)
+    for d in raw_data:
         current_inf = d['inf']
         if current_inf not in inf_dict:
             inf_dict[current_inf] = {}
@@ -89,6 +86,24 @@ def merge(inf, list_elts):
     ans['uais_etablissements'] = uais_etablissements
     return ans
 
+def test(raw_data_suffix='latest'):
+    global fresq_enriched
+    logger.debug('>>>>>>>>>> TRANSFORM >>>>>>>>>>')
+    logger.debug(f'start fresq data from {raw_data_suffix} enrichment')
+    global df_fresq_raw
+    if df_fresq_raw is None:
+        df_fresq_raw = get_df_fresq_raw(raw_data_suffix)
+    raw_data = df_fresq_raw.to_dict(orient='records')
+    raw_data2 = []
+    for e in raw_data:
+        d = e['data']
+        for f in ['recordId', 'collectionId', 'bucketId']:
+            if e.get(f):
+                d[f] = e.get(f)
+        raw_data2.append(d)
+    raw_data_etapes_clean = clean_etapes(raw_data2)
+    return raw_data_etapes_clean
+
 def transform_raw_data(raw_data_suffix='latest'):
     global fresq_enriched
     logger.debug('>>>>>>>>>> TRANSFORM >>>>>>>>>>')
@@ -97,7 +112,15 @@ def transform_raw_data(raw_data_suffix='latest'):
     if df_fresq_raw is None:
         df_fresq_raw = get_df_fresq_raw(raw_data_suffix)
     raw_data = df_fresq_raw.to_dict(orient='records')
-    fresq_data = group_by_inf(raw_data)
+    raw_data2 = []
+    for e in raw_data:
+        d = e['data']
+        for f in ['recordId', 'collectionId', 'bucketId']:
+            if e.get(f):
+                d[f] = e.get(f)
+        raw_data2.append(d)
+    raw_data_etapes_clean = clean_etapes(raw_data2)
+    fresq_data = group_by_inf(raw_data_etapes_clean)
     fresq_data_with_paysage = [enrich_with_paysage(fresq_elt) for fresq_elt in fresq_data]
     fresq_enriched = []
     for ix, e in enumerate(fresq_data_with_paysage):
