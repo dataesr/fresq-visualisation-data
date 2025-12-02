@@ -46,7 +46,6 @@ def get_years_in_sise():
         df_sise_dict, years_in_sise = get_sise()
     return years_in_sise
 
-
 #def get_sise_elt(uai_fresq, sise_fresq, annee, fresq_id):
 def get_sise_elt(uais, inf, annee):
     
@@ -62,8 +61,8 @@ def get_sise_elt(uais, inf, annee):
 
     df_sise_annee = df_sise_dict[annee]
     
-    filter_uai = df_sise_annee.uai_fresq.isin(uais)
-    filter_inf = (df_sise_annee.inf == inf)
+    filter_uai = df_sise_annee.uai_fresq.fillna('').str.split('/').apply(lambda x: any(u in uais for u in x))
+    filter_inf = (df_sise_annee.inf.fillna('').str.split('/').apply(lambda x: inf in x))
     df_sise_filtered = df_sise_annee[filter_uai & filter_inf]
     if len(df_sise_filtered) == 0:
         return empty_ans
