@@ -28,10 +28,14 @@ def clean_etapes(data):
                 new_info = transform_references(references)
                 for f in new_info:
                     existing_info = e.get(f, {})
-                    #print(existing_info)
-                    #print('---')
-                    #print(new_info[f])
-                    existing_info.update(new_info[f])
+                    logger.debug(f)
+                    logger.debug(existing_info)
+                    logger.debug('---')
+                    logger.debug(new_info[f])
+                    if existing_info:
+                        existing_info.update(new_info[f])
+                    elif new_info[f]:
+                        existing_info = new_info[f]
                     e[f] = existing_info
                 del e['references']
         ans.append(d)
@@ -48,7 +52,7 @@ def get_list_data(my_dict, my_key):
                     new_elt[k] = my_dict[f]['data'][k]
                 ans.append(new_elt)
     if ans:
-        return {f'{my_key}_details': ans}
+        return ans
     return {}
 
 
@@ -58,13 +62,19 @@ def transform_references(references):
         if f in references:
             ans[f'{f}_details'] = references[f]['data']
     for f in ['sites', 'modalite_enseignement']:
-        ans[f'{f}_details'] = get_list_data(references, f)
+        current_details = get_list_data(references, f)
+        if current_details:
+            ans[f'{f}_details'] = current_details
     ans_ip = {}
     for f in ['mot_cle_sectoriel', 'mot_cle_disciplinaire', 'mot_cle_metier']:
-        ans_ip.update(get_list_data(references, f))
+        current_details = get_list_data(references, f)
+        if current_details:
+            ans_ip[f'{f}_details'] = current_details
     ans.update({'informations_pedagogiques': ans_ip})
     ans_recrut = {}
     for f in ['diplome_conseille', 'critere_examen_candidature']:
-        ans_recrut.update(get_list_data(references, f))
+        current_details = get_list_data(references, f)
+        if current_details:
+            ans_recrut[f'{f}_details'] = current_details
     ans.update({'modalite_recrutement': ans_recrut})
     return ans
