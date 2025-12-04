@@ -19,6 +19,7 @@ from project.server.main.utils import (
     get_etab_filename,
     get_mentions_filename,
     get_transformed_data_filename,
+    get_formatted_data_filename,
     save_logs,
 )
 from project.server.main.utils_swift import download_object, upload_object
@@ -71,12 +72,19 @@ def load_fresq(raw_data_suffix, index_name):
     load_mentions(raw_data_suffix, index_name.replace('fresq-', 'fresq-mentions-'))
     load_etabs(raw_data_suffix, index_name.replace('fresq-', 'fresq-etablissements-'))
     logger.debug('>>>>>>>>>> LOAD FRESQ >>>>>>>>>>')
-    transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
-    download_object('fresq', transformed_data_filename, transformed_data_filename)
+    
+    #transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
+    #download_object('fresq', transformed_data_filename, transformed_data_filename)
+    
+    formatted_data_filename = get_formatted_data_filename(raw_data_suffix)
+    download_object('fresq', formatted_data_filename, formatted_data_filename)
+
     mappings_fresq = get_mappings_fresq()
     reset_index(index=index_name, mappings = mappings_fresq)
     es_host = get_es_host()
-    elasticimport = f"elasticdump --input={transformed_data_filename} --output={es_host}{index_name} --type=data --limit 100 --noRefresh " + "--transform='doc._source=Object.assign({},doc)'"
+    #elasticimport = f"elasticdump --input={transformed_data_filename} --output={es_host}{index_name} --type=data --limit 100 --noRefresh " + "--transform='doc._source=Object.assign({},doc)'"
+    elasticimport = f"elasticdump --input={formatted_data_filename} --output={es_host}{index_name} --type=data --limit 100 --noRefresh " + "--transform='doc._source=Object.assign({},doc)'"
     os.system(elasticimport)
     refresh_index(index_name)
+    
     save_logs()

@@ -126,7 +126,7 @@ def transform_raw_data(raw_data_suffix='latest'):
     for ix, e in enumerate(fresq_data_with_paysage):
         elt = enrich_fresq_elt(e)
         fresq_enriched.append(elt)
-        if len(fresq_enriched) % 2000 == 0:
+        if len(fresq_enriched) % 50 == 0:
             logger.debug(f'{len(fresq_enriched)} / {len(fresq_data_with_paysage)}')
     transformed_data_filename = get_transformed_data_filename(raw_data_suffix)
     os.system(f'rm -rf {transformed_data_filename}')

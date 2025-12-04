@@ -33,6 +33,8 @@ def get_sise():
         df_sise.to_csv('sise_latest.csv.gz', index=False, sep=';')
     annees = df_sise['annee_universitaire'].unique().tolist()
     annees.sort()
+    df_sise['uai_fresq_split'] = df_sise.uai_fresq.fillna('').str.split('/')
+    df_sise['inf_split'] = df_sise.inf.fillna('').str.split('/')
     years_in_sise = annees
     df_sise_dict = {}
     df_sise_dict['all'] = df_sise
@@ -60,9 +62,9 @@ def get_sise_elt(uais, inf, annee):
         df_sise_dict, years_in_sise = get_sise()
 
     df_sise_annee = df_sise_dict[annee]
-    
-    filter_uai = df_sise_annee.uai_fresq.fillna('').str.split('/').apply(lambda x: any(u in uais for u in x))
-    filter_inf = (df_sise_annee.inf.fillna('').str.split('/').apply(lambda x: inf in x))
+    uais_set = set(uais) 
+    filter_uai = df_sise_annee.uai_fresq_split.apply(lambda x: bool(set(x) & uais_set))
+    filter_inf = df_sise_annee.inf_split.apply(lambda x: inf in x)
     df_sise_filtered = df_sise_annee[filter_uai & filter_inf]
     if len(df_sise_filtered) == 0:
         return empty_ans

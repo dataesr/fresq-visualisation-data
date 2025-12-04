@@ -8,13 +8,13 @@ from project.server.main.transform import get_transformed_data
 from project.server.main.utils import (
     save_logs,
     to_jsonl,
+    get_formatted_data_filename
 )
 from project.server.main.utils_swift import download_object, upload_object
 
 logger = get_logger(__name__)
 
 fresq_enriched = None
-fresq_formatted = []
 
 LocationType = Literal['etablissement', 'site']
 
@@ -748,13 +748,8 @@ def format_record(record: Dict[str, Any]) -> FormationFormatted:
 # MAIN FUNCTIONS
 # ============================================================================
 
-def get_formatted_data_filename(suffix: str) -> str:
-    """Get the filename for formatted data."""
-    return f'fresq_formatted_{suffix}.jsonl'
-
 
 def format_transformed_data(raw_data_suffix: str = 'latest', dry_run: bool = False, output_path: Optional[str] = None) -> List[FormationFormatted]:
-    global fresq_formatted
     logger.debug('>>>>>>>>>> TRANSFORM FORMAT >>>>>>>>>>')
     logger.debug(f'Starting FRESQ data formatting from {raw_data_suffix} (dry_run={dry_run})')
 

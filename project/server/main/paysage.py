@@ -32,7 +32,7 @@ def enrich_with_paysage(elt):
         if uai not in final_uai_paysage_correspondance:
             logger.debug(f'{uai} not in final_uai_paysage_correspondance ??')
             continue
-        paysage_infos = final_uai_paysage_correspondance[uai]
+        paysage_infos = final_uai_pa    # first loop to populate the maprysage_correspondance[uai]
         new_etab = copy.deepcopy(etab)
         new_etab.update(paysage_infos)
         elt['etablissements'][ix] = new_etab
@@ -77,7 +77,9 @@ def get_etabs(raw_data_suffix):
     #uais2 = df_uais_in_geoloc.site_uai.to_list()
     #logger.debug(f'Extra UAI found in geoloc = {len(uais2)}')
     
+
     paysage_uai_map = {}
+    # first loop to populate the map     
     for uai in uais:
         get_paysage_search(uai)
     

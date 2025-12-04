@@ -28,10 +28,10 @@ def clean_etapes(data):
                 new_info = transform_references(references)
                 for f in new_info:
                     existing_info = e.get(f, {})
-                    logger.debug(f)
-                    logger.debug(existing_info)
-                    logger.debug('---')
-                    logger.debug(new_info[f])
+                    #logger.debug(f)
+                    #logger.debug(existing_info)
+                    #logger.debug('---')
+                    #logger.debug(new_info[f])
                     if existing_info:
                         existing_info.update(new_info[f])
                     elif new_info[f]:

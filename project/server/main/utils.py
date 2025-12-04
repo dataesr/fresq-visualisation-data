@@ -84,6 +84,10 @@ def get_mentions_filename(suffix):
 def get_etab_filename(suffix):
     return f'etabs_{suffix}.jsonl'
 
+def get_formatted_data_filename(suffix: str) -> str:
+    """Get the filename for formatted data."""
+    return f'fresq_formatted_{suffix}.jsonl'
+
 def validate_json_schema(data: list, _schema: dict) -> bool:
     is_valid = True
     try:
