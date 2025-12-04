@@ -1,13 +1,27 @@
 import json
 import math
 import os
+
 import requests
 from retry import retry
 
+from project.server.main.elastic import (
+    get_es_host,
+    get_mappings_etab,
+    get_mappings_fresq,
+    get_mappings_mentions,
+    get_mappings_metiers,
+    refresh_index,
+    reset_index,
+)
 from project.server.main.logger import get_logger
-from project.server.main.utils_swift import upload_object, download_object
-from project.server.main.utils import get_transformed_data_filename, get_mentions_filename, get_etab_filename, save_logs
-from project.server.main.elastic import reset_index, refresh_index, get_es_host, get_mappings_fresq, get_mappings_mentions, get_mappings_etab, get_mappings_metiers
+from project.server.main.utils import (
+    get_etab_filename,
+    get_mentions_filename,
+    get_transformed_data_filename,
+    save_logs,
+)
+from project.server.main.utils_swift import download_object, upload_object
 
 logger = get_logger(__name__)
 
