@@ -5,11 +5,7 @@ from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Un
 
 from project.server.main.logger import get_logger
 from project.server.main.transform import get_transformed_data
-from project.server.main.utils import (
-    save_logs,
-    to_jsonl,
-    get_formatted_data_filename
-)
+from project.server.main.utils import get_formatted_data_filename, save_logs, to_jsonl
 from project.server.main.utils_swift import download_object, upload_object
 
 logger = get_logger(__name__)
@@ -317,8 +313,8 @@ class LocationCollector:
 
         return self.add(
             'site',
-            id=site.get('uai'),
-            name=site.get('nom_site') or site.get('nom') or site.get('nom_fresq') or addr.get('ville') or 'Site',
+            id=site.get('uai') or addr.get('uai'),
+            name=addr.get('nom_site') or addr.get('nom') or addr.get('nom_fresq') or addr.get('ville') or 'Site',
             address=address if address else None,
             geo_coords=geo_coords
         )
@@ -606,8 +602,10 @@ def transform_parcours(raw: Dict[str, Any]) -> Parcours:
     return parcours
 
 
-def build_etablissement(data: Dict[str, Any], location_ids: List[str]) -> Etablissement:
+def build_etablissement(data: Dict[str, Any], location_collector: LocationCollector) -> Etablissement:
     """Build an etablissement from raw data"""
+
+
     etab: Etablissement = {
         'uai': data.get('uai_etablissement', ''),
         'name': data.get('nom_etablissement') or data.get('nom_commun_etablissement') or '',
@@ -631,51 +629,45 @@ def build_etablissement(data: Dict[str, Any], location_ids: List[str]) -> Etabli
         'typeDelivrance': data.get('type_delivrance', ''),
         'academy': data.get('academie', ''),
         'region': data.get('region_academique', ''),
-        'locationIds': location_ids
     }
 
     paysage_elt = data.get('paysage_elt')
     paysage_elt_to_use = data.get('paysage_elt_to_use')
 
+    location_ids = []
     # Always include paysageElt if it exists
     if paysage_elt:
         etab['paysageElt'] = rename_paysage_elt(paysage_elt)
+        location_id = location_collector.add_from_paysage(paysage_elt)
+        location_ids.append(location_id)
 
     # Only include paysageEltToUse if it's different from paysageElt
     if paysage_elt_to_use and not are_paysage_elts_same(paysage_elt, paysage_elt_to_use):
         etab['paysageEltToUse'] = rename_paysage_elt(paysage_elt_to_use)
+        location_id_to_use = location_collector.add_from_paysage(paysage_elt_to_use)
+        location_ids.append(location_id_to_use)
+
+    etab['locationIds'] = location_ids
 
     return etab
 
 
-def format_record(record: Dict[str, Any]) -> FormationFormatted:
+def format_record(data: Dict[str, Any]) -> FormationFormatted:
     """Format a single FRESQ record with renamed fields and extracted locations.
 
     This does NOT group by INF - each record is processed individually.
     Uses data already enriched by transform.py (mention_normalized, cycle, etc.).
     Uses paysage geoloc for etablissement locations (ignores geolocalisations).
     """
-    data = record.get('data', record)
     details = data.get('formation_details')
 
     # Location collector for this record
     location_collector = LocationCollector()
 
-    # Get paysage info for etablissement location
-    paysage_elt = data.get('paysage_elt')
-    paysage_elt_to_use = data.get('paysage_elt_to_use')
+    transformed_etablissements = data.get('etablissements', [])
+    etablissements = [build_etablissement(d, location_collector) for d in transformed_etablissements]
 
-    location_ids = []
-    if paysage_elt:
-        location_id = location_collector.add_from_paysage(paysage_elt)
-        location_ids.append(location_id)
 
-    if paysage_elt_to_use and not are_paysage_elts_same(paysage_elt, paysage_elt_to_use):
-        location_id_to_use = location_collector.add_from_paysage(paysage_elt_to_use)
-        location_ids.append(location_id_to_use)
-
-    # Build etablissement with location reference (no embedded locations)
-    etablissement = build_etablissement(data, location_ids)
 
     # Transform etapes with location references
     etapes: List[Etape] = []
@@ -725,13 +717,13 @@ def format_record(record: Dict[str, Any]) -> FormationFormatted:
         'butSpecialtySigle': data.get('sigle_specialite_but'),
         'disciplinarySector': data.get('secteur_disciplinaire_sise'),
         'keywords': data.get('mots_cles'),
-        'etablissements': [etablissement],
+        'etablissements': etablissements,
         'parcours': parcours,
         'etapes': etapes,
         'locations': location_collector.get_all(),
-        'collectionId': record.get('collectionId'),
-        'recordId': record.get('recordId'),
-        'bucketId': record.get('bucketId'),
+        'collectionId': data.get('collectionId'),
+        'recordId': data.get('recordId'),
+        'bucketId': data.get('bucketId'),
         'sourceId': data.get('identifiant_source'),
         'hasRncpInfos': data.get('avec_rncp_infos', False),
         'rncpInfos': rename_rncp_infos(data.get('rncp_infos')),
