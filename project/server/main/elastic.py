@@ -109,8 +109,8 @@ def get_mappings_fresq():
               'formation_details.etapes_details.informations_pedagogiques.mot_cle_metier_details.nom',
               'formation_details.etapes_details.informations_pedagogiques.mot_cle_sectoriel_details.nom',
               'disciplinarySector', 'discipline_lib', 'disciplines_selection', 'engineeringSpecialties',
-              'etapes.label', 'etapes.pedagogicalInfo.keywords', 'etapes.pedagogicalInfo.keywords_disciplines',
-              'etapes.pedagogicalInfo.keywords_secteurs', 'etapes.pedagogicalInfo.keywords_metiers',
+              'etapes.label', 'etapes.pedagogicalInfo.keywords', 'etapes.pedagogicalInfo.keywordsDisciplines',
+              'etapes.pedagogicalInfo.keywordsSecteurs', 'etapes.pedagogicalInfo.keywordsMetiers',
               'etablissements.name', 'etablissements.shortName', 'etablissements.sigle',
               'etablissements.paysageElt.name', 'etablissements.paysageEltToUse.name', 'etablissements.address.city',
               'locations.address.street', 'locations.address.city', 'locations.address.siteName', 'locations.name'
