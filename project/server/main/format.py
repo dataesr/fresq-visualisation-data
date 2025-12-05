@@ -79,8 +79,8 @@ class Etablissement(TypedDict, total=False):
 class PedagogicalInfo(TypedDict, total=False):
     keywords: Optional[List[str]]
     keywordsDisciplines: Optional[List[str]]
-    keywordsMetiers: Optional[List[str]]
-    keywordsSecteurs: Optional[List[str]]
+    keywordsJobs: Optional[List[str]]
+    keywordsSectors: Optional[List[str]]
     languages: Optional[List[str]]
     teachingLanguages: Optional[List[str]]
     formationLink: Optional[str]
@@ -537,9 +537,9 @@ def transform_etape(raw: Dict[str, Any], location_collector: LocationCollector) 
         if keywords_disciplines:
             pedagogical_info['keywordsDisciplines'] = keywords_disciplines
         if keywords_metiers:
-            pedagogical_info['keywordsMetiers'] = keywords_metiers
+            pedagogical_info['keywordsJobs'] = keywords_metiers
         if keywords_secteurs:
-            pedagogical_info['keywordsSecteurs'] = keywords_secteurs
+            pedagogical_info['keywordsSectors'] = keywords_secteurs
         if ped_info.get('langues_vivantes'):
             pedagogical_info['languages'] = ped_info['langues_vivantes']
         if ped_info.get('langues_enseignement'):
