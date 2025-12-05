@@ -78,7 +78,9 @@ class Etablissement(TypedDict, total=False):
 
 class PedagogicalInfo(TypedDict, total=False):
     keywords: Optional[List[str]]
-    disciplines: Optional[List[str]]
+    keywords_disciplines: Optional[List[str]]
+    keywords_metiers: Optional[List[str]]
+    keywords_secteurs: Optional[List[str]]
     languages: Optional[List[str]]
     teachingLanguages: Optional[List[str]]
     formationLink: Optional[str]
@@ -362,12 +364,12 @@ def extract_teaching_modalities(etape: Dict[str, Any]) -> List[TeachingModality]
     return modalities
 
 
-def extract_disciplines(etape: Dict[str, Any]) -> List[str]:
+def extract_mot_cle(etape: Dict[str, Any], keyword_type) -> List[str]:
     """Extract disciplines from etape (after clean_etapes)."""
     disciplines: List[str] = []
 
     ped_info = etape.get('informations_pedagogiques', {})
-    disc_details = ped_info.get('mot_cle_disciplinaire_details', [])
+    disc_details = ped_info.get(keyword_type, [])
     if isinstance(disc_details, list):
         for disc in disc_details:
             name = disc.get('nom', '')
@@ -376,7 +378,6 @@ def extract_disciplines(etape: Dict[str, Any]) -> List[str]:
                 disciplines.append(name)
 
     return disciplines
-
 
 def extract_recommended_diplomas(etape: Dict[str, Any]) -> List[str]:
     """Extract recommended diplomas from etape (after clean_etapes)."""
@@ -510,7 +511,9 @@ def transform_etape(raw: Dict[str, Any], location_collector: LocationCollector) 
 
 
 
-    disciplines = extract_disciplines(raw)
+    keywords_disciplines = extract_mot_cle(raw, 'mot_cle_disciplinaire_details')
+    keywords_metiers = extract_mot_cle(raw, 'mot_cle_metier_details')
+    keywords_secteurs = extract_mot_cle(raw, 'mot_cle_sectoriel_details')
     recommended_diplomas = extract_recommended_diplomas(raw)
     selection_methods = extract_selection_methods(raw)
 
@@ -527,12 +530,16 @@ def transform_etape(raw: Dict[str, Any], location_collector: LocationCollector) 
 
     # Pedagogical info
     ped_info = raw.get('informations_pedagogiques', {})
-    if ped_info or disciplines:
+    if ped_info:
         pedagogical_info: PedagogicalInfo = {}
         if ped_info.get('mot_cle_libre'):
             pedagogical_info['keywords'] = ped_info['mot_cle_libre']
-        if disciplines:
-            pedagogical_info['disciplines'] = disciplines
+        if keywords_disciplines:
+            pedagogical_info['keywords_disciplines'] = keywords_disciplines
+        if keywords_metiers:
+            pedagogical_info['keywords_metiers'] = keywords_metiers
+        if keywords_secteurs:
+            pedagogical_info['keywords_secteurs'] = keywords_secteurs
         if ped_info.get('langues_vivantes'):
             pedagogical_info['languages'] = ped_info['langues_vivantes']
         if ped_info.get('langues_enseignement'):

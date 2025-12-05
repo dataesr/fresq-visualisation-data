@@ -91,7 +91,7 @@ def get_mappings_fresq():
                 'type': 'text',
                 'analyzer': 'autocomplete'
             }
-    for f in ['mots_cles', 'specialites', 'domaines', 
+    for f in ['mots_cles', 'specialites', 'domaines', 'domains', 
               'domaine_rattachement_1_cti', 'domaine_rattachement_2_cti', 'domaine_rattachement_autre_cti',
               'specialite_sante', 'specialites_cti', 'nom_specialite_but',
               'intitule_officiel', 
@@ -107,7 +107,13 @@ def get_mappings_fresq():
               'formation_details.etapes_details.informations_pedagogiques.mot_cle_libre',
               'formation_details.etapes_details.informations_pedagogiques.mot_cle_disciplinaire_details.nom',
               'formation_details.etapes_details.informations_pedagogiques.mot_cle_metier_details.nom',
-              'formation_details.etapes_details.informations_pedagogiques.mot_cle_sectoriel_details.nom'
+              'formation_details.etapes_details.informations_pedagogiques.mot_cle_sectoriel_details.nom',
+              'disciplinarySector', 'discipline_lib', 'disciplines_selection', 'engineeringSpecialties',
+              'etapes.label', 'etapes.pedagogicalInfo.keywords', 'etapes.pedagogicalInfo.keywords_disciplines',
+              'etapes.pedagogicalInfo.keywords_secteurs', 'etapes.pedagogicalInfo.keywords_metiers',
+              'etablissements.name', 'etablissements.shortName', 'etablissements.sigle',
+              'etablissements.paysageElt.name', 'etablissements.paysageEltToUse.name', 'etablissements.address.city',
+              'locations.address.street', 'locations.address.city', 'locations.address.siteName', 'locations.name'
              ]:
         mappings['properties'][f] = {
                 'type': 'text',
