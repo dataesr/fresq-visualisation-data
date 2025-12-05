@@ -1,11 +1,13 @@
 from project.server.main.logger import get_logger
+
 logger = get_logger(__name__)
 
 import os
 
 client = None
-from elasticsearch import Elasticsearch, helpers
 from urllib import parse
+
+from elasticsearch import Elasticsearch, helpers
 
 ES_URL = os.getenv('ES_URL')
 ES_LOGIN_FRESQ_BACK = os.getenv('ES_LOGIN_FRESQ_BACK')
@@ -91,11 +93,11 @@ def get_mappings_fresq():
                 'type': 'text',
                 'analyzer': 'autocomplete'
             }
-    for f in ['mots_cles', 'specialites', 'domaines', 'domains', 
+    for f in ['mots_cles', 'specialites', 'domaines', 'domains',
               'domaine_rattachement_1_cti', 'domaine_rattachement_2_cti', 'domaine_rattachement_autre_cti',
               'specialite_sante', 'specialites_cti', 'nom_specialite_but',
-              'intitule_officiel', 
-              'libelle_formation_2', 'mention_normalized', 
+              'intitule_officiel',
+              'libelle_formation_2', 'mention_normalized',
               'nom_etablissement',
               'rncp_infos.type_emploi_accessibles',
               'rome_infos.level_1', 'rome_infos.level_2', 'rome_infos.level_3', 'rome_infos.label',
@@ -109,8 +111,8 @@ def get_mappings_fresq():
               'formation_details.etapes_details.informations_pedagogiques.mot_cle_metier_details.nom',
               'formation_details.etapes_details.informations_pedagogiques.mot_cle_sectoriel_details.nom',
               'disciplinarySector', 'discipline_lib', 'disciplines_selection', 'engineeringSpecialties',
-              'etapes.label', 'etapes.pedagogicalInfo.keywords', 'etapes.pedagogicalInfo.keywords_disciplines',
-              'etapes.pedagogicalInfo.keywords_secteurs', 'etapes.pedagogicalInfo.keywords_metiers',
+              'etapes.label', 'etapes.pedagogicalInfo.keywords', 'etapes.pedagogicalInfo.keywordsDisciplines',
+              'etapes.pedagogicalInfo.keywordsSectors', 'etapes.pedagogicalInfo.keywordsJobs',
               'etablissements.name', 'etablissements.shortName', 'etablissements.sigle',
               'etablissements.paysageElt.name', 'etablissements.paysageEltToUse.name', 'etablissements.address.city',
               'locations.address.street', 'locations.address.city', 'locations.address.siteName', 'locations.name'
@@ -140,7 +142,7 @@ def get_mappings_fresq():
                 'analyzer': 'light',
             }
     return mappings
- 
+
 
 def get_mappings_metiers():
     mappings = { 'properties': {} }
@@ -170,18 +172,18 @@ def get_mappings_mentions():
                 'type': 'text',
                 'analyzer': 'autocomplete'
             }
-    
-    for f in ['mots_cles', 'specialites', 'domaines', 
+
+    for f in ['mots_cles', 'specialites', 'domaines',
               'domaine_rattachement_1_cti', 'domaine_rattachement_2_cti', 'domaine_rattachement_autre_cti',
-              'intitule_officiel', 
-              'libelle_formation_2', 'mention_normalized', 
+              'intitule_officiel',
+              'libelle_formation_2', 'mention_normalized',
               'formations.nom_etablissement',
               'rncp_infos.type_emploi_accessibles',
-              'rome_infos.level_1', 'rome_infos.level_2', 'rome_infos.label', 
+              'rome_infos.level_1', 'rome_infos.level_2', 'rome_infos.label',
               'sise_secteur_disciplinaire', 'sise_discipline', 'sise_grande_discipline',
           #    'entityfishing_infos.entities.domains',
           #    'monmaster_infos.listSpecialityCourse', 'monmaster_infos.keyWords',
-          #   'monmaster_infos.courses.expectedSkills', 'monmaster_infos.courses.keyWords', 
+          #   'monmaster_infos.courses.expectedSkills', 'monmaster_infos.courses.keyWords',
           #   'monmaster_infos.courses.criteres'
           ]:
         mappings['properties'][f] = {
@@ -249,7 +251,7 @@ def delete_index(index: str) -> None:
     es = get_client()
     response = es.indices.delete(index=index, ignore=[400, 404])
     logger.debug(response)
-    
+
 def refresh_index(index):
     logger.debug(f'Refreshing {index}')
     es = get_client()
