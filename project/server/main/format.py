@@ -740,8 +740,92 @@ def format_record(data: Dict[str, Any]) -> FormationFormatted:
         'siseInfos': data.get('sise_infos')
     }
 
+    formation['stock'] = ['2025']
+
+    formation_with_search_field = enrich_with_search(formation)
+
+    return formation_with_search_field
+
+def enrich_with_search(formation):
+    search_elt = {}
+    # ROME
+    search_info = 'romeInfos'
+    search_elt[search_info] = {}
+    if isinstance(formation.get(search_info), list):
+        for e in formation.get(search_info):
+            for f in ['codeRome', 'idLevel1', 'level1', 'idLevel2', 'level2', 'level3', 'label', 'ogr', 'rncp']:
+                if f not in search_elt[search_info]:
+                    search_elt[search_info][f] = []
+                if f in e and e[f] not in search_elt[search_info][f]:
+                    search_elt[search_info][f].append(e[f])
+    # RNCP
+    search_info = 'rncpInfos'
+    search_elt[search_info] = {}
+    if isinstance(formation.get(search_info), list):
+        for e in formation.get(search_info):
+            for f in ['rncp', 'typeEmploiAccessibles']:
+                if f not in search_elt[search_info]:
+                    search_elt[search_info][f] = []
+                if f in e and e[f] not in search_elt[search_info][f]:
+                    search_elt[search_info][f].append(e[f])
+    # etapes
+    search_info = 'etapes'
+    search_elt[search_info] = {}
+    if isinstance(formation.get(search_info), list):
+        for e in formation.get(search_info):
+            for f in ['infe', 'label']:
+                if f not in search_elt[search_info]:
+                    search_elt[search_info][f] = []
+                if f in e and e[f] not in search_elt[search_info][f]:
+                    search_elt[search_info][f].append(e[f])
+            if 'pedagogicalInfo' in e and isinstance(e['pedagogicalInfo'], dict):
+                for k in ['keywords', 'keywordsDisciplines', 'keywordsJobs', 'keywordsSectors']:
+                    if isinstance(e['pedagogicalInfo'].get(k), list):
+                        current_field = f'pedagogicalInfo{k.capitalize()}'
+                        if current_field not in search_elt[search_info]:
+                            search_elt[search_info][current_field] = []
+                        search_elt[search_info][current_field] += e['pedagogicalInfo'].get(k)
+                        search_elt[search_info][current_field] = list(set(search_elt[search_info][current_field]))
+            if 'recruitmentInfo' in e and isinstance(e['recruitmentInfo'], dict) and isinstance(e['recruitmentInfo'].get('expectations'), list):
+                current_field = f'recruitmentInfoExpectations'
+                if current_field not in search_elt[search_info]:
+                    search_elt[search_info][current_field] = []
+                search_elt[search_info][current_field] += e['recruitmentInfo'].get('expectations')
+                search_elt[search_info][current_field] = list(set(search_elt[search_info][current_field]))
+    # parcours
+    search_info = 'parcours'
+    search_elt[search_info] = {}
+    if isinstance(formation.get(search_info), list):
+        for e in formation.get(search_info):
+            for f in ['infp', 'label']:
+                if f not in search_elt[search_info]:
+                    search_elt[search_info][f] = []
+                if f in e and e[f] not in search_elt[search_info][f]:
+                    search_elt[search_info][f].append(e[f])
+    # etablissements
+    search_info = 'etablissements'
+    search_elt[search_info] = {}
+    if isinstance(formation.get(search_info), list):
+        for e in formation.get(search_info):
+            for f in ['uai', 'name', 'shortName', 'sigle', 'paysageName', 'city']:
+                if f not in search_elt[search_info]:
+                    search_elt[search_info][f] = []
+                if f in e and e[f] not in search_elt[search_info][f]:
+                    search_elt[search_info][f].append(e[f])
+                if f == 'paysageName':
+                    if 'paysageElt' in e and isinstance(e['paysageElt'].get('name'), str) and e['paysageElt'].get('name') not in search_elt[search_info]['paysageName']:
+                        search_elt[search_info]['paysageName'].append(e['paysageElt'].get('name'))
+                if f == 'city':
+                    if 'address' in e and isinstance(e['address'].get('city'), str) and e['address'].get('city') not in search_elt[search_info]['city']:
+                        search_elt[search_info]['city'].append(e['address'].get('city'))
+    # global
+    for search_info in ['inf', 'label', 'disciplinarySector' ]:
+        search_elt[search_info] = formation.get(search_info)
+    
+    formation['search'] = search_elt
     return formation
 
+        
 
 # ============================================================================
 # MAIN FUNCTIONS

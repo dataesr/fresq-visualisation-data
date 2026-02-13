@@ -141,6 +141,20 @@ def get_mappings_fresq():
                 'type': 'text',
                 'analyzer': 'light',
             }
+
+    mappings["dynamic_templates"] = [
+        {
+                    "search_fields_template": {
+                        "path_match": "search.*",
+                        "match_mapping_type": "string",
+                         "mapping": {
+                             "type": "text",
+                             "analyzer": "heavy"
+                        }
+                    }
+        }]
+
+
     return mappings
 
 

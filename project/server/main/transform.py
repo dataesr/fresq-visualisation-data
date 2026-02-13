@@ -294,5 +294,5 @@ def enrich_fresq_elt(elt):
     # rome
     rome_infos = get_rome_elt(num_rncps)
     elt.update(rome_infos)
-    
+
     return elt
