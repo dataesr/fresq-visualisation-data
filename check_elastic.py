@@ -13,7 +13,7 @@ ES_URL = os.getenv('ES_URL')
 MATTERMOST_WEBHOOK_URL = os.getenv('MATTERMOST_WEBHOOK_URL')
 
 def get_nodes_stats():
-    url = f"{ES_URL}/_cat/allocation?v"
+    url = f"{ES_URL}_cat/allocation?v"
 
     response = requests.get(
         url,
