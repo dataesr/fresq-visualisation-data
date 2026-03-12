@@ -3,7 +3,7 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 
-DISK_THRESHOLD = 26
+DISK_THRESHOLD = 75
 
 MM_CHANNEL="ticket-office-assistant"
 BOT_ICON_URL="https://img.icons8.com/emoji/48/000000/robot-emoji.png"
