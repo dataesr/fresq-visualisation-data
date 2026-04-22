@@ -32,7 +32,7 @@ def enrich_with_paysage(elt):
         if uai not in final_uai_paysage_correspondance:
             logger.debug(f'{uai} not in final_uai_paysage_correspondance ??')
             continue
-        paysage_infos = final_uai_pa    # first loop to populate the maprysage_correspondance[uai]
+        paysage_infos = final_uai_paysage_correspondance[uai]    # first loop to populate the map
         new_etab = copy.deepcopy(etab)
         new_etab.update(paysage_infos)
         elt['etablissements'][ix] = new_etab
@@ -129,6 +129,9 @@ def get_paysage_infos(paysage_elt):
     new = {}
     geoloc = None
     new['id'] = paysage_elt['id']
+    if 'name' not in paysage_elt:
+        logger.debug('missing name field ?')
+        logger.debug(paysage_elt)
     name = paysage_elt['name']
     new['name'] = name
     if isinstance(paysage_elt.get('coordinates'), list):
@@ -187,7 +190,6 @@ def get_paysage_parents(paysage_id):
             actives.append(d)
     if(len(actives) > 1):
         print(f'more than 1 parent for {paysage_id}')
-        return (actives)
     parents = [get_paysage(k['resourceId']) for k in actives]
     return parents
 
